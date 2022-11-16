@@ -8,6 +8,7 @@
 struct RenderShapeData {
     ScenePrimitive primitive;
     glm::mat4 ctm; // the cumulative transformation matrix
+    glm::mat4 inversed_ctm;
 };
 
 // Struct which contains all the data needed to render a scene
@@ -26,5 +27,8 @@ public:
     // @param renderData  On return, this will contain the metadata of the loaded scene.
     // @return            A boolean value indicating whether the parse was successful.
     static bool parse(std::string filepath, RenderData &renderData);
+    static void traverse(SceneNode *node, glm::mat4 ctm, RenderData &renderData);
+    static glm::mat4 calculateCTM(glm::mat4 parent_ctm, std::vector<SceneTransformation*> &transformations);
+    static glm::mat4 getInversedCTM(glm::mat4 ctm);
 };
 

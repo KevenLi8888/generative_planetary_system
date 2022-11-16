@@ -13,13 +13,21 @@
 #include <QTime>
 #include <QTimer>
 
+#include "utils/sceneparser.h"
+#include "utils/camera.h"
+#include "utils/primitive.h"
+#include "settings.h"
+
 class Realtime : public QOpenGLWidget
 {
 public:
     Realtime(QWidget *parent = nullptr);
     void finish();                                      // Called on program exit
-    void sceneChanged();
+    void sceneChanged();                                // Load and parse scenefile here
     void settingsChanged();
+    void setDefaultState();
+    void initializeShapes();                            // Initialize VBO and VAO for 4 shapes
+    Primitive* getCurrentShape(PrimitiveType primitive_type);
 
 public slots:
     void tick(QTimerEvent* event);                      // Called once per tick of m_timer
@@ -48,4 +56,16 @@ private:
 
     // Device Correction Variables
     int m_devicePixelRatio;
+
+    // Added for Project 5
+    RenderData metaData;
+    GLuint m_shader;
+    Camera camera = {1, 1, metaData.cameraData, 1, 1};
+    Sphere sphere;
+    Cylinder cylinder;
+    Cone cone;
+    Cube cube;
+    bool initialized = false;
+    int current_param_1 = settings.shapeParameter1;
+    int current_param_2 = settings.shapeParameter2;
 };

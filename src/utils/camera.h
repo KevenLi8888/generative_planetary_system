@@ -40,6 +40,8 @@ public:
 
     glm::mat4 getProjectionMatrix() const;
 
+    glm::mat4 getSxyzMatrix() const;
+
     void updateCamaraSize(int w, int h);
 
     void updateNearPlane(double near);

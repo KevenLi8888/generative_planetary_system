@@ -88,6 +88,15 @@ glm::mat4 Camera::getProjectionMatrix() const {
     // return glm::perspective(double(camera_data.heightAngle),1.0 * camera_width / camera_height,near_plane,far_plane);
 }
 
+glm::mat4 Camera::getSxyzMatrix() const {
+    glm::mat4 Sxyz;
+    Sxyz[0] = glm::vec4(1/(far_plane * tan(getWidthAngle()/2)), 0, 0, 0);
+    Sxyz[1] = glm::vec4(0, 1/(far_plane * tan(getHeightAngle()/2)), 0, 0);
+    Sxyz[2] = glm::vec4(0, 0, 1/far_plane, 0);
+    Sxyz[3] = glm::vec4(0, 0, 0, 1);
+    return Sxyz;
+}
+
 void Camera::updateCamaraSize(int w, int h) {
     camera_width = w;
     camera_height = h;

@@ -38,6 +38,15 @@ void Realtime::finish() {
     glDeleteBuffers(4, &vbos[0]);
     GLuint vaos[4] = {sphere.getVAOId(), cylinder.getVAOId(), cone.getVAOId(), cube.getVAOId()};
     glDeleteVertexArrays(4, &vaos[0]);
+    GLuint vbos_hi[4] = {sphere_hi.getVBOId(), cylinder_hi.getVBOId(), cone_hi.getVBOId(), cube_hi.getVBOId()};
+    glDeleteBuffers(4, &vbos_hi[0]);
+    GLuint vaos_hi[4] = {sphere_hi.getVAOId(), cylinder_hi.getVAOId(), cone_hi.getVAOId(), cube_hi.getVAOId()};
+    glDeleteVertexArrays(4, &vaos_hi[0]);
+    GLuint vbos_low[4] = {sphere_low.getVBOId(), cylinder_low.getVBOId(), cone_low.getVBOId(), cube_low.getVBOId()};
+    glDeleteBuffers(4, &vbos_low[0]);
+    GLuint vaos_low[4] = {sphere_low.getVAOId(), cylinder_low.getVAOId(), cone_low.getVAOId(), cube_low.getVAOId()};
+    glDeleteVertexArrays(4, &vaos_low[0]);
+    Debug::glErrorCheck();
     glDeleteProgram(m_shader);
     this->doneCurrent();
 }
@@ -80,7 +89,16 @@ void Realtime::paintGL() {
     auto m_proj = camera.getProjectionMatrix();
 
     for (auto& shape: metaData.shapes) {
-        Primitive* current_shape = getCurrentShape(shape.primitive.type);
+        Primitive* current_shape;
+        if (settings.extraCredit2) {
+            current_shape = getCurrentShape(shape.primitive.type, getDetailLevelByDistance(shape));
+        }
+        else if (settings.extraCredit1) {
+            current_shape = getCurrentShape(shape.primitive.type, getDetailLevelByNumberOfObjects(metaData));
+        }
+        else {
+            current_shape = getCurrentShape(shape.primitive.type, Detail::DETAIL_MID);
+        }
         glBindVertexArray(current_shape->getVAOId());
         Debug::glErrorCheck();
 
@@ -89,7 +107,6 @@ void Realtime::paintGL() {
         auto m_model_location = glGetUniformLocation(m_shader, "model_mat");
         glUniformMatrix4fv(m_model_location, 1, GL_FALSE, &m_model[0][0]);
         Debug::glErrorCheck();
-        // TODO: store transposed matrix in primitive?
         auto m_model_inversed_transposed = glm::mat3(glm::transpose(shape.inversed_ctm));
         auto m_model_inversed_transposed_location = glGetUniformLocation(m_shader, "inversed_transposed_model_mat");
         glUniformMatrix3fv(m_model_inversed_transposed_location, 1, GL_FALSE, &m_model_inversed_transposed[0][0]);
@@ -141,7 +158,6 @@ void Realtime::paintGL() {
     }
     Debug::glErrorCheck();
     glUseProgram(0);
-
 }
 
 void Realtime::resizeGL(int w, int h) {
@@ -183,12 +199,173 @@ void Realtime::settingsChanged() {
         current_param_1 = settings.shapeParameter1;
         current_param_2 = settings.shapeParameter2;
     }
+    else if (initialized and (settings.extraCredit1 != extra_credit_1_toggle or settings.extraCredit2 != extra_credit_2_toggle)) {
+        initializeShapes();
+        extra_credit_1_toggle = settings.extraCredit1;
+        extra_credit_2_toggle = settings.extraCredit2;
+    }
     update(); // asks for a PaintGL() call to occur
 }
 
 void Realtime::setDefaultState() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+}
+
+void Realtime::initializeShapes() {
+    sphere.updateParams(settings.shapeParameter1, settings.shapeParameter2);
+    sphere.makeVBO();
+    sphere.makeVAO();
+    setDefaultState();
+    cylinder.updateParams(settings.shapeParameter1, settings.shapeParameter2);
+    cylinder.makeVBO();
+    cylinder.makeVAO();
+    setDefaultState();
+    cone.updateParams(settings.shapeParameter1, settings.shapeParameter2);
+    cone.makeVBO();
+    cone.makeVAO();
+    setDefaultState();
+    cube.updateParams(settings.shapeParameter1, settings.shapeParameter2);
+    cube.makeVBO();
+    cube.makeVAO();
+    setDefaultState();
+
+    // Extra Credit: Adaptive level of detail (default: mid)
+    // 1 - Varies by number of objects (reuse near, mid, far for different levels)
+    // 2 - Varies by distance (near, mid, far)
+    if (settings.extraCredit1 or settings.extraCredit2) {
+        // near
+        sphere_hi.updateParams(round(settings.shapeParameter1 * 3),
+                               round(settings.shapeParameter2 * 3));
+        sphere_hi.makeVBO();
+        sphere_hi.makeVAO();
+        setDefaultState();
+        cylinder_hi.updateParams(round(settings.shapeParameter1 * 3),
+                                 round(settings.shapeParameter2 * 3));
+        cylinder_hi.makeVBO();
+        cylinder_hi.makeVAO();
+        setDefaultState();
+        cone_hi.updateParams(round(settings.shapeParameter1 * 3),
+                             round(settings.shapeParameter2 * 3));
+        cone_hi.makeVBO();
+        cone_hi.makeVAO();
+        setDefaultState();
+        cube_hi.updateParams(round(settings.shapeParameter1 * 3),
+                             round(settings.shapeParameter2 * 3));
+        cube_hi.makeVBO();
+        cube_hi.makeVAO();
+        setDefaultState();
+        // far
+        sphere_low.updateParams(round(settings.shapeParameter1 * 0.5),
+                                round(settings.shapeParameter2 * 0.5));
+        sphere_low.makeVBO();
+        sphere_low.makeVAO();
+        setDefaultState();
+        cylinder_low.updateParams(round(settings.shapeParameter1 * 0.5),
+                                  round(settings.shapeParameter2 * 0.5));
+        cylinder_low.makeVBO();
+        cylinder_low.makeVAO();
+        setDefaultState();
+        cone_low.updateParams(round(settings.shapeParameter1 * 0.5),
+                              round(settings.shapeParameter2 * 0.5));
+        cone_low.makeVBO();
+        cone_low.makeVAO();
+        setDefaultState();
+        cube_low.updateParams(round(settings.shapeParameter1 * 0.5),
+                              round(settings.shapeParameter2 * 0.5));
+        cube_low.makeVBO();
+        cube_low.makeVAO();
+        setDefaultState();
+    }
+}
+
+Detail Realtime::getDetailLevelByDistance(RenderShapeData &shape) {
+    auto m_view = camera.getViewMatrix();
+    auto m_sxyz = camera.getSxyzMatrix();
+    // location in canonical perspective view volume
+    auto location = m_sxyz * m_view * shape.ctm * glm::vec4(0, 0, 0, 1);
+    auto distance = glm::distance(location, glm::vec4(0, 0, 0, 1));
+    if (distance >= 0 and distance < 1.f/5.f) {
+        return Detail::DETAIL_HI;
+    }
+    else if (distance >= 1.f/5.f and distance < 1.f/2.f) {
+        return Detail::DETAIL_MID;
+    }
+    else {
+        return Detail::DETAIL_LOW;
+    }
+}
+
+Detail Realtime::getDetailLevelByNumberOfObjects(RenderData &data) {
+    auto object_number = data.shapes.size();
+    if (object_number < 50) {
+        return Detail::DETAIL_HI;
+    }
+    else if (object_number >= 50 and object_number < 200) {
+        return Detail::DETAIL_MID;
+    }
+    else {
+        return Detail::DETAIL_LOW;
+    }
+}
+
+Primitive* Realtime::getCurrentShape(PrimitiveType primitive_type, Detail detail) {
+    Primitive* current_shape;
+    switch (primitive_type) {
+        case PrimitiveType::PRIMITIVE_SPHERE:
+            switch (detail) {
+                case Detail::DETAIL_HI:
+                    current_shape = &sphere_hi;
+                    break;
+                case Detail::DETAIL_MID:
+                    current_shape = &sphere;
+                    break;
+                case Detail::DETAIL_LOW:
+                    current_shape = &sphere_low;
+                    break;
+            }
+            break;
+        case PrimitiveType::PRIMITIVE_CYLINDER:
+            switch (detail) {
+                case Detail::DETAIL_HI:
+                    current_shape = &cylinder_hi;
+                    break;
+                case Detail::DETAIL_MID:
+                    current_shape = &cylinder;
+                    break;
+                case Detail::DETAIL_LOW:
+                    current_shape = &cylinder_low;
+                    break;
+            }
+            break;
+        case PrimitiveType::PRIMITIVE_CONE:
+            switch (detail) {
+                case Detail::DETAIL_HI:
+                    current_shape = &cone_hi;
+                    break;
+                case Detail::DETAIL_MID:
+                    current_shape = &cone;
+                    break;
+                case Detail::DETAIL_LOW:
+                    current_shape = &cone_low;
+                    break;
+            }
+            break;
+        case PrimitiveType::PRIMITIVE_CUBE:
+            switch (detail) {
+                case Detail::DETAIL_HI:
+                    current_shape = &cube_hi;
+                    break;
+                case Detail::DETAIL_MID:
+                    current_shape = &cube;
+                    break;
+                case Detail::DETAIL_LOW:
+                    current_shape = &cube_low;
+                    break;
+            }
+            break;
+    }
+    return current_shape;
 }
 
 // ================== Project 6: Action!
@@ -236,40 +413,4 @@ void Realtime::timerEvent(QTimerEvent *event) {
     // Use deltaTime and m_keyMap here to move around
 
     update(); // asks for a PaintGL() call to occur
-}
-
-void Realtime::initializeShapes() {
-    sphere.updateParams(settings.shapeParameter1, settings.shapeParameter2);
-    sphere.makeVBO();
-    sphere.makeVAO();
-    setDefaultState();
-    cylinder.updateParams(settings.shapeParameter1, settings.shapeParameter2);
-    cylinder.makeVBO();
-    cylinder.makeVAO();
-    cone.updateParams(settings.shapeParameter1, settings.shapeParameter2);
-    cone.makeVBO();
-    cone.makeVAO();
-    cube.updateParams(settings.shapeParameter1, settings.shapeParameter2);
-    cube.makeVBO();
-    cube.makeVAO();
-    setDefaultState();
-}
-
-Primitive* Realtime::getCurrentShape(PrimitiveType primitive_type) {
-    Primitive* current_shape;
-    switch (primitive_type) {
-        case PrimitiveType::PRIMITIVE_SPHERE:
-            current_shape = &sphere;
-            break;
-        case PrimitiveType::PRIMITIVE_CYLINDER:
-            current_shape = &cylinder;
-            break;
-        case PrimitiveType::PRIMITIVE_CONE:
-            current_shape = &cone;
-            break;
-        case PrimitiveType::PRIMITIVE_CUBE:
-            current_shape = &cube;
-            break;
-    }
-    return current_shape;
 }

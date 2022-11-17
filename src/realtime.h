@@ -18,6 +18,12 @@
 #include "utils/primitive.h"
 #include "settings.h"
 
+enum class Detail {
+    DETAIL_HI,
+    DETAIL_MID,
+    DETAIL_LOW
+};
+
 class Realtime : public QOpenGLWidget
 {
 public:
@@ -27,7 +33,9 @@ public:
     void settingsChanged();
     void setDefaultState();
     void initializeShapes();                            // Initialize VBO and VAO for 4 shapes
-    Primitive* getCurrentShape(PrimitiveType primitive_type);
+    Primitive* getCurrentShape(PrimitiveType primitive_type, Detail detail);
+    Detail getDetailLevelByDistance(RenderShapeData& shape); // Extra Credit - Adaptive level of detail (distance)
+    Detail getDetailLevelByNumberOfObjects(RenderData& data);
 
 public slots:
     void tick(QTimerEvent* event);                      // Called once per tick of m_timer
@@ -68,4 +76,15 @@ private:
     bool initialized = false;
     int current_param_1 = settings.shapeParameter1;
     int current_param_2 = settings.shapeParameter2;
+    // Extra Credit: Adaptive level of detail
+    Sphere sphere_hi;
+    Sphere sphere_low;
+    Cylinder cylinder_hi;
+    Cylinder cylinder_low;
+    Cone cone_hi;
+    Cone cone_low;
+    Cube cube_hi;
+    Cube cube_low;
+    bool extra_credit_1_toggle = false;
+    bool extra_credit_2_toggle = false;
 };

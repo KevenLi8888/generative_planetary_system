@@ -90,6 +90,12 @@ The distance is also not calculated in the canonical space because the unhinging
 
 ![No adaptive level of detail](/images/default.png)
 
+No adaptive level of detail
+
 ![Adaptive based on numbers (level-high)](/images/number.png)
 
+Adaptive based on numbers (level-high)
+
 ![Adaptive based on distance](/images/distance.png)
+
+Adaptive based on distance

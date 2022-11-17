@@ -8,7 +8,6 @@
 class Primitive {
 public:
     virtual void updateParams(int param1, int param2) = 0;
-//    std::vector<float> generateShape() { return m_vertexData; }
     void insertVec3(std::vector<float> &data, glm::vec3 v);
     void makeVBO();
     void makeVAO();

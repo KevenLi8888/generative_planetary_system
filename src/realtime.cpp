@@ -46,7 +46,6 @@ void Realtime::finish() {
     glDeleteBuffers(4, &vbos_low[0]);
     GLuint vaos_low[4] = {sphere_low.getVAOId(), cylinder_low.getVAOId(), cone_low.getVAOId(), cube_low.getVAOId()};
     glDeleteVertexArrays(4, &vaos_low[0]);
-    Debug::glErrorCheck();
     glDeleteProgram(m_shader);
     this->doneCurrent();
 }
@@ -76,7 +75,6 @@ void Realtime::initializeGL() {
     // Students: anything requiring OpenGL calls when the program starts should be done here
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert",
                                                  ":/resources/shaders/default.frag");
-    Debug::glErrorCheck();
     initialized = true;
 }
 
@@ -100,22 +98,18 @@ void Realtime::paintGL() {
             current_shape = getCurrentShape(shape.primitive.type, Detail::DETAIL_MID);
         }
         glBindVertexArray(current_shape->getVAOId());
-        Debug::glErrorCheck();
 
         // Vertex Shader
         auto m_model = shape.ctm;
         auto m_model_location = glGetUniformLocation(m_shader, "model_mat");
         glUniformMatrix4fv(m_model_location, 1, GL_FALSE, &m_model[0][0]);
-        Debug::glErrorCheck();
         auto m_model_inversed_transposed = glm::mat3(glm::transpose(shape.inversed_ctm));
         auto m_model_inversed_transposed_location = glGetUniformLocation(m_shader, "inversed_transposed_model_mat");
         glUniformMatrix3fv(m_model_inversed_transposed_location, 1, GL_FALSE, &m_model_inversed_transposed[0][0]);
-        Debug::glErrorCheck();
         auto m_view_location = glGetUniformLocation(m_shader, "view_mat");
         glUniformMatrix4fv(m_view_location, 1, GL_FALSE, &m_view[0][0]);
         auto m_proj_location = glGetUniformLocation(m_shader, "proj_mat");
         glUniformMatrix4fv(m_proj_location, 1, GL_FALSE, &m_proj[0][0]);
-        Debug::glErrorCheck();
 
         // Fragment Shader
         // GlobalData
@@ -156,7 +150,6 @@ void Realtime::paintGL() {
         glDrawArrays(GL_TRIANGLES, 0, current_shape->getVertexData().size()/6);
         glBindVertexArray(0);
     }
-    Debug::glErrorCheck();
     glUseProgram(0);
 }
 
@@ -185,7 +178,6 @@ void Realtime::sceneChanged() {
                     settings.farPlane);
 
     initializeShapes();
-    Debug::glErrorCheck();
 
     update(); // asks for a PaintGL() call to occur
 }

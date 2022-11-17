@@ -14,7 +14,6 @@ void Primitive::makeVBO() {
     makePrimitive();
     glBufferData(GL_ARRAY_BUFFER, m_vertexData.size() * sizeof(GLfloat),
                  m_vertexData.data(), GL_STATIC_DRAW);
-    Debug::glErrorCheck();
 }
 
 void Primitive::makeVAO() {
@@ -27,7 +26,6 @@ void Primitive::makeVAO() {
     auto normal_offset = sizeof(GL_FLOAT) * 3;
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void *>(normal_offset));
-    Debug::glErrorCheck();
 }
 
 GLuint Primitive::getVBOId() {

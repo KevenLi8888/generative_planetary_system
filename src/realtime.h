@@ -31,11 +31,7 @@ public:
     void finish();                                      // Called on program exit
     void sceneChanged();                                // Load and parse scenefile here
     void settingsChanged();
-    void setDefaultState();
-    void initializeShapes();                            // Initialize VBO and VAO for 4 shapes
-    Primitive* getCurrentShape(PrimitiveType primitive_type, Detail detail);
-    Detail getDetailLevelByDistance(RenderShapeData& shape); // Extra Credit - Adaptive level of detail (distance)
-    Detail getDetailLevelByNumberOfObjects(RenderData& data);
+
 
 public slots:
     void tick(QTimerEvent* event);                      // Called once per tick of m_timer
@@ -53,6 +49,19 @@ private:
     void mouseMoveEvent(QMouseEvent *event) override;
     void timerEvent(QTimerEvent *event) override;
 
+    // Project 5
+    void setDefaultState();
+    void initializeShapes();                            // Initialize VBO and VAO for 4 shapes
+    void paintScene();
+    Primitive* getCurrentShape(PrimitiveType primitive_type, Detail detail);
+    Detail getDetailLevelByDistance(RenderShapeData& shape); // Extra Credit - Adaptive level of detail (distance)
+    Detail getDetailLevelByNumberOfObjects(RenderData& data);
+
+    // Project 6
+    void initializeFullscreenQuad();
+    void makeFBO();
+    void paintPostProcess(GLuint texture, bool post_process);
+
     // Tick Related Variables
     int m_timer;                                        // Stores timer which attempts to run ~60 times per second
     QElapsedTimer m_elapsedTimer;                       // Stores timer which keeps track of actual time between frames
@@ -65,7 +74,7 @@ private:
     // Device Correction Variables
     int m_devicePixelRatio;
 
-    // Added for Project 5
+    // Project 5
     RenderData metaData;
     GLuint m_shader;
     Camera camera = {1, 1, metaData.cameraData, 1, 1};
@@ -87,4 +96,13 @@ private:
     Cube cube_low;
     bool extra_credit_1_toggle = false;
     bool extra_credit_2_toggle = false;
+
+    // Project 6
+    GLuint m_fullscreen_vbo;
+    GLuint m_fullscreen_vao;
+    GLuint m_fbo;
+    GLuint m_fbo_postprocess;
+    GLuint m_fbo_renderbuffer;
+    GLuint m_defaultFBO;
+    GLuint m_postprocess_shader;
 };

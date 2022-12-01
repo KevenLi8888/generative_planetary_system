@@ -11,6 +11,7 @@ public:
     void insertVec3(std::vector<float> &data, glm::vec3 v);
     void makeVBO();
     void makeVAO();
+    virtual glm::vec2 getUV(glm::vec3 intersect_point) = 0;
     GLuint getVBOId();
     GLuint getVAOId();
     std::vector<float> getVertexData();
@@ -36,6 +37,7 @@ protected:
 class Sphere: public Primitive {
 public:
     void updateParams(int param1, int param2);
+    glm::vec2 getUV(glm::vec3 intersect_point);
 
 private:
     void makeSideTile(glm::vec3 topLeft,
@@ -49,6 +51,7 @@ private:
 class Cylinder: public Primitive {
 public:
     void updateParams(int param1, int param2);
+    glm::vec2 getUV(glm::vec3 intersect_point);
 
 private:
     void makeSideTile(glm::vec3 topLeft,
@@ -64,6 +67,7 @@ private:
 class Cone: public Primitive {
 public:
     void updateParams(int param1, int param2);
+    glm::vec2 getUV(glm::vec3 intersect_point);
 
 private:
     void makeSideTile(glm::vec3 topLeft,
@@ -80,6 +84,7 @@ private:
 class Cube: public Primitive {
 public:
     void updateParams(int param1, int param2);
+    glm::vec2 getUV(glm::vec3 intersect_point);
 
 private:
     void makeSideTile(glm::vec3 topLeft,

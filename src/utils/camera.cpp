@@ -97,6 +97,30 @@ glm::mat4 Camera::getSxyzMatrix() const {
     return Sxyz;
 }
 
+glm::vec4 Camera::getCameraLook() const {
+    return camera_data.look;
+}
+
+glm::vec4 Camera::getCameraUp() const {
+    return camera_data.up;
+}
+
+glm::mat3 Camera::getRotationMatrix(float degree, glm::vec3 axis) const {
+    glm::mat3 rotation;
+    float theta = degree * (M_PI / 180);
+    auto u = glm::normalize(axis);
+    rotation[0] = glm::vec3(cos(theta) + pow(u.x, 2) * (1 - cos(theta)),
+                            u.x * u.y * (1 - cos(theta)) + u.z * sin(theta),
+                            u.x * u.z * (1 - cos(theta)) - u.y * sin(theta));
+    rotation[1] = glm::vec3(u.x * u.y * (1 - cos(theta)) - u.z * sin(theta),
+                            cos(theta) + pow(u.y, 2) * (1 - cos(theta)),
+                            u.y * u.z * (1 - cos(theta)) + u.x * sin(theta));
+    rotation[2] = glm::vec3(u.x * u.z * (1 - cos(theta)) + u.y * sin(theta),
+                            u.y * u.z * (1 - cos(theta)) - u.x * sin(theta),
+                            cos(theta) + pow(u.z, 2) * (1 - cos(theta)));
+    return rotation;
+}
+
 void Camera::updateCamaraSize(int w, int h) {
     camera_width = w;
     camera_height = h;
@@ -108,4 +132,13 @@ void Camera::updateNearPlane(double near) {
 
 void Camera::updateFarPlane(double far) {
     far_plane = far;
+}
+
+void Camera::updateCameraPosition(glm::vec4 new_pos) {
+    camera_data.pos = new_pos;
+    // TODO: update inversed view matrix (not used in this project)
+}
+
+void Camera::updateCameraLook(glm::vec4 new_look) {
+    camera_data.look = new_look;
 }

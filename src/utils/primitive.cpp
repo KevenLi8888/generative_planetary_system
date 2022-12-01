@@ -111,6 +111,17 @@ void Sphere::makePrimitive() {
     }
 }
 
+glm::vec2 Sphere::getUV(glm::vec3 intersect_point) {
+    auto theta = atan2(intersect_point.z, intersect_point.x);
+    auto u = (theta < 0) ? -theta/(2*M_PI) : 1-theta/(2*M_PI);
+    auto r = sqrt(pow(intersect_point.x, 2) + pow(intersect_point.y, 2) + pow(intersect_point.z, 2));
+    auto phi = asin(intersect_point.y / r);
+    auto v = phi/M_PI + 0.5;
+    if (v == 0 or v == 1)
+        u = 0.5;
+    return {u, v};
+}
+
 void Cylinder::updateParams(int param1, int param2) {
     m_vertexData = std::vector<float>();
     m_param1 = param1;

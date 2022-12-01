@@ -42,11 +42,21 @@ public:
 
     glm::mat4 getSxyzMatrix() const;
 
+    glm::vec4 getCameraLook() const;
+
+    glm::vec4 getCameraUp() const;
+
+    glm::mat3 getRotationMatrix(float degree, glm::vec3 axis) const;
+
     void updateCamaraSize(int w, int h);
 
     void updateNearPlane(double near);
 
     void updateFarPlane(double far);
+
+    void updateCameraPosition(glm::vec4 new_pos);
+
+    void updateCameraLook(glm::vec4 new_look);
 
 private:
     SceneCameraData camera_data;

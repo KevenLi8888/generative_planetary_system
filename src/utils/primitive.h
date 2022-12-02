@@ -4,6 +4,16 @@
 #include <glm/glm.hpp>
 #include "GL/glew.h"
 
+enum class IntersectLocation {
+    SIDE, // Sphere, Cylinder, Cone
+    TOP, // All shapes
+    BOTTOM,
+    FRONT, // Cube only, viewing direction: -z
+    BACK,
+    LEFT,
+    RIGHT,
+    NONE,
+};
 
 class Primitive {
 public:
@@ -11,7 +21,7 @@ public:
     void insertVec3(std::vector<float> &data, glm::vec3 v);
     void makeVBO();
     void makeVAO();
-    virtual glm::vec2 getUV(glm::vec3 intersect_point) = 0;
+    virtual glm::vec3 getUV(glm::vec3 pos, IntersectLocation intersect_location) = 0;
     GLuint getVBOId();
     GLuint getVAOId();
     std::vector<float> getVertexData();
@@ -37,7 +47,7 @@ protected:
 class Sphere: public Primitive {
 public:
     void updateParams(int param1, int param2);
-    glm::vec2 getUV(glm::vec3 intersect_point);
+    glm::vec3 getUV(glm::vec3 pos, IntersectLocation intersect_location = IntersectLocation::SIDE);
 
 private:
     void makeSideTile(glm::vec3 topLeft,
@@ -51,14 +61,14 @@ private:
 class Cylinder: public Primitive {
 public:
     void updateParams(int param1, int param2);
-    glm::vec2 getUV(glm::vec3 intersect_point);
+    glm::vec3 getUV(glm::vec3 pos, IntersectLocation intersect_location);
 
 private:
     void makeSideTile(glm::vec3 topLeft,
                       glm::vec3 topRight,
                       glm::vec3 bottomLeft,
                       glm::vec3 bottomRight);
-    void makeCapTile(glm::vec3 top, glm::vec3 left, glm::vec3 right);
+    void makeCapTile(glm::vec3 top, glm::vec3 left, glm::vec3 right, IntersectLocation intersect_location);
     void makeSide(float currentTheta, float nextTheta);
     void makeCap(float currentTheta, float nextTheta);
     void makePrimitive();
@@ -67,7 +77,7 @@ private:
 class Cone: public Primitive {
 public:
     void updateParams(int param1, int param2);
-    glm::vec2 getUV(glm::vec3 intersect_point);
+    glm::vec3 getUV(glm::vec3 pos, IntersectLocation intersect_location);
 
 private:
     void makeSideTile(glm::vec3 topLeft,
@@ -84,16 +94,25 @@ private:
 class Cube: public Primitive {
 public:
     void updateParams(int param1, int param2);
-    glm::vec2 getUV(glm::vec3 intersect_point);
+    glm::vec3 getUV(glm::vec3 pos, IntersectLocation intersect_location);
 
 private:
-    void makeSideTile(glm::vec3 topLeft,
+    void makeConeSideTile(glm::vec3 topLeft,
                       glm::vec3 topRight,
                       glm::vec3 bottomLeft,
-                      glm::vec3 bottomRight);
+                      glm::vec3 bottomRight,
+                      IntersectLocation intersect_location);
     void makeFace(glm::vec3 topLeft,
                   glm::vec3 topRight,
                   glm::vec3 bottomLeft,
-                  glm::vec3 bottomRight);
+                  glm::vec3 bottomRight,
+                  IntersectLocation intersect_location);
     void makePrimitive();
+    // Not used
+    void makeSideTile(glm::vec3 topLeft,
+                      glm::vec3 topRight,
+                      glm::vec3 bottomLeft,
+                      glm::vec3 bottomRight) {
+
+    }
 };

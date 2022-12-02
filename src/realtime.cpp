@@ -140,6 +140,8 @@ void Realtime::sceneChanged() {
         std::cerr << "Error loading scene: \"" << scene_path << "\"" << std::endl;
     }
 
+    loadTextures();
+
     // instantiate camera
     camera = Camera(size().width() * m_devicePixelRatio,
                     size().height() * m_devicePixelRatio,
@@ -261,6 +263,19 @@ void Realtime::paintScene() {
         }
         glBindVertexArray(current_shape->getVAOId());
 
+        // Texture Mapping - Project 6 Extra Credit
+        auto blend = (settings.extraCredit3) ? shape.primitive.material.blend : 0;
+        auto m_texture = (settings.extraCredit3 and shape.primitive.material.textureMap.isUsed) ?
+                scene_textures.at(shape.primitive.material.textureMap.filename) : 0;
+        auto texture_sampler_pos = glGetUniformLocation(m_shader, "texture_sampler");
+        glUniform1i(texture_sampler_pos, 0);
+        auto blend_pos = glGetUniformLocation(m_shader, "blend");
+        glUniform1f(blend_pos, blend);
+        auto hor_repeat_pos = glGetUniformLocation(m_shader, "hor_repeat");
+        glUniform1f(hor_repeat_pos, shape.primitive.material.textureMap.repeatU);
+        auto vert_repeat_pos = glGetUniformLocation(m_shader, "vert_repeat");
+        glUniform1f(vert_repeat_pos, shape.primitive.material.textureMap.repeatV);
+
         // Vertex Shader
         auto m_model = shape.ctm;
         auto m_model_location = glGetUniformLocation(m_shader, "model_mat");
@@ -339,7 +354,12 @@ void Realtime::paintScene() {
         auto cam_pos = camera.getCameraPosition();
         auto cam_pos_location = glGetUniformLocation(m_shader, "cam_pos_world");
         glUniform4fv(cam_pos_location, 1, &cam_pos[0]);
-        glDrawArrays(GL_TRIANGLES, 0, current_shape->getVertexData().size()/6);
+
+        // Texture
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_texture);
+        glDrawArrays(GL_TRIANGLES, 0, current_shape->getVertexData().size()/9);
+        glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
     }
     glUseProgram(0);
@@ -467,11 +487,11 @@ void Realtime::mouseMoveEvent(QMouseEvent *event) {
 
         // Use deltaX and deltaY here to rotate
         float degree_x = 0.05 * deltaX;
-        auto new_cam_look = camera.getRotationMatrix(degree_x, {0,1,0}) * glm::vec3(camera.getCameraLook());
+        auto new_cam_look = glm::normalize(camera.getRotationMatrix(degree_x, {0,1,0}) * glm::vec3(camera.getCameraLook()));
         camera.updateCameraLook({new_cam_look, 1.f});
         float degree_y = 0.05 * deltaY;
-        new_cam_look = camera.getRotationMatrix(degree_y, glm::cross(glm::vec3(camera.getCameraLook()), glm::vec3(camera.getCameraUp())))
-                * glm::vec3(camera.getCameraLook());
+        new_cam_look = glm::normalize(camera.getRotationMatrix(degree_y, glm::cross(glm::vec3(camera.getCameraLook()), glm::vec3(camera.getCameraUp())))
+                * glm::vec3(camera.getCameraLook()));
         camera.updateCameraLook({new_cam_look, 1.f});
         update(); // asks for a PaintGL() call to occur
     }
@@ -606,8 +626,8 @@ void Realtime::paintPostProcess(GLuint texture, bool post_process) {
     glUseProgram(m_postprocess_shader);
     // Task 32: Set your bool uniform on whether or not to filter the texture drawn
     glUniform1i(glGetUniformLocation(m_postprocess_shader, "post_process"), post_process);
-    glUniform1f(glGetUniformLocation(m_postprocess_shader, "width"), size().width());
-    glUniform1f(glGetUniformLocation(m_postprocess_shader, "height"), size().height());
+    glUniform1f(glGetUniformLocation(m_postprocess_shader, "width"), size().width() * m_devicePixelRatio);
+    glUniform1f(glGetUniformLocation(m_postprocess_shader, "height"), size().height() * m_devicePixelRatio);
 
     glBindVertexArray(m_fullscreen_vao);
     // Task 10: Bind "texture" to slot 0
@@ -618,4 +638,33 @@ void Realtime::paintPostProcess(GLuint texture, bool post_process) {
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
     glUseProgram(0);
+}
+
+void Realtime::loadTextures() {
+    for (auto& texture : scene_textures) {
+        glDeleteTextures(1, &texture.second);
+    }
+    scene_textures.clear();
+    for (auto& shape: metaData.shapes) {
+        if (shape.primitive.material.textureMap.isUsed) {
+            auto image = loadImageFromFile(shape.primitive.material.textureMap.filename);
+            GLuint texture;
+            glGenTextures(1, &texture);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                         image.width(), image.height(), 0,
+                         GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            scene_textures.emplace(shape.primitive.material.textureMap.filename, texture);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+    }
+}
+
+QImage Realtime::loadImageFromFile(const std::string &file_path) {
+    auto file = QString::fromStdString(file_path);
+    auto m_image = QImage(file).convertToFormat(QImage::Format_RGBA8888).mirrored();
+    return m_image;
 }

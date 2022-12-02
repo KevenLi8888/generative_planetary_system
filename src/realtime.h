@@ -61,6 +61,8 @@ private:
     void initializeFullscreenQuad();
     void makeFBO();
     void paintPostProcess(GLuint texture, bool post_process);
+    void loadTextures();
+    QImage loadImageFromFile(const std::string& file_path);
 
     // Tick Related Variables
     int m_timer;                                        // Stores timer which attempts to run ~60 times per second
@@ -105,4 +107,5 @@ private:
     GLuint m_fbo_renderbuffer;
     GLuint m_defaultFBO;
     GLuint m_postprocess_shader;
+    std::map<std::string, GLuint> scene_textures;
 };

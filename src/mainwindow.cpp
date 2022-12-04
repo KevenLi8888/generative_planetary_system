@@ -48,13 +48,19 @@ void MainWindow::initialize() {
 
     // Create checkbox for per-pixel filter
     filter1 = new QCheckBox();
-    filter1->setText(QStringLiteral("Per-Pixel Filter"));
+    filter1->setText(QStringLiteral("Per-Pixel Filter: Grayscale"));
     filter1->setChecked(false);
+    filter3 = new QCheckBox();
+    filter3->setText(QStringLiteral("Per-Pixel Filter: Invert"));
+    filter3->setChecked(false);
 
     // Create checkbox for kernel-based filter
     filter2 = new QCheckBox();
-    filter2->setText(QStringLiteral("Kernel-Based Filter"));
+    filter2->setText(QStringLiteral("Kernel-Based Filter: Blur"));
     filter2->setChecked(false);
+    filter4 = new QCheckBox();
+    filter4->setText(QStringLiteral("Kernel-Based Filter: Sharpen"));
+    filter4->setChecked(false);
 
     // Create file uploader for scene file
     uploadFile = new QPushButton();
@@ -142,19 +148,19 @@ void MainWindow::initialize() {
 
     // Extra Credit:
     ec1 = new QCheckBox();
-    ec1->setText(QStringLiteral("Extra Credit 1"));
+    ec1->setText(QStringLiteral("Adaptive LoD 1"));
     ec1->setChecked(false);
 
     ec2 = new QCheckBox();
-    ec2->setText(QStringLiteral("Extra Credit 2"));
+    ec2->setText(QStringLiteral("Adaptive LoD 2"));
     ec2->setChecked(false);
 
     ec3 = new QCheckBox();
-    ec3->setText(QStringLiteral("Extra Credit 3"));
+    ec3->setText(QStringLiteral("Texture Mapping"));
     ec3->setChecked(false);
 
     ec4 = new QCheckBox();
-    ec4->setText(QStringLiteral("Extra Credit 4"));
+    ec4->setText(QStringLiteral("Shadow Mapping"));
     ec4->setChecked(false);
 
     vLayout->addWidget(uploadFile);
@@ -171,6 +177,8 @@ void MainWindow::initialize() {
     vLayout->addWidget(filters_label);
     vLayout->addWidget(filter1);
     vLayout->addWidget(filter2);
+    vLayout->addWidget(filter3);
+    vLayout->addWidget(filter4);
     // Extra Credit:
     vLayout->addWidget(ec_label);
     vLayout->addWidget(ec1);
@@ -180,13 +188,13 @@ void MainWindow::initialize() {
 
     connectUIElements();
 
-    // Set default values of 5 for tesselation parameters
-    onValChangeP1(5);
-    onValChangeP2(5);
+    // Set default values of 10 for tesselation parameters
+    onValChangeP1(10);
+    onValChangeP2(10);
 
     // Set default values for near and far planes
     onValChangeNearBox(0.1f);
-    onValChangeFarBox(10.f);
+    onValChangeFarBox(20.f);
 }
 
 void MainWindow::finish() {
@@ -196,7 +204,9 @@ void MainWindow::finish() {
 
 void MainWindow::connectUIElements() {
     connectPerPixelFilter();
+    connectPerPixelFilter2();
     connectKernelBasedFilter();
+    connectKernelBasedFilter2();
     connectUploadFile();
     connectParam1();
     connectParam2();
@@ -209,8 +219,16 @@ void MainWindow::connectPerPixelFilter() {
     connect(filter1, &QCheckBox::clicked, this, &MainWindow::onPerPixelFilter);
 }
 
+void MainWindow::connectPerPixelFilter2() {
+    connect(filter3, &QCheckBox::clicked, this, &MainWindow::onPerPixelFilter2);
+}
+
 void MainWindow::connectKernelBasedFilter() {
     connect(filter2, &QCheckBox::clicked, this, &MainWindow::onKernelBasedFilter);
+}
+
+void MainWindow::connectKernelBasedFilter2() {
+    connect(filter4, &QCheckBox::clicked, this, &MainWindow::onKernelBasedFilter2);
 }
 
 void MainWindow::connectUploadFile() {
@@ -253,8 +271,18 @@ void MainWindow::onPerPixelFilter() {
     realtime->settingsChanged();
 }
 
+void MainWindow::onPerPixelFilter2() {
+    settings.perPixelFilter2 = !settings.perPixelFilter2;
+    realtime->settingsChanged();
+}
+
 void MainWindow::onKernelBasedFilter() {
     settings.kernelBasedFilter = !settings.kernelBasedFilter;
+    realtime->settingsChanged();
+}
+
+void MainWindow::onKernelBasedFilter2() {
+    settings.kernelBasedFilter2 = !settings.kernelBasedFilter2;
     realtime->settingsChanged();
 }
 

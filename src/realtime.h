@@ -6,6 +6,7 @@
 #endif
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+#include <glm/ext.hpp>
 
 #include <unordered_map>
 #include <QElapsedTimer>
@@ -60,9 +61,13 @@ private:
     // Project 6
     void initializeFullscreenQuad();
     void makeFBO();
-    void paintPostProcess(GLuint texture, bool post_process);
+    void paintPostProcess(GLuint texture);
+    // Extra Credit - Texture Mapping
     void loadTextures();
     QImage loadImageFromFile(const std::string& file_path);
+    // Extra Credit - Shadow Mapping
+    void makeDepthMaps();
+    void paintDepthMaps();
 
     // Tick Related Variables
     int m_timer;                                        // Stores timer which attempts to run ~60 times per second
@@ -105,7 +110,13 @@ private:
     GLuint m_fbo;
     GLuint m_fbo_postprocess;
     GLuint m_fbo_renderbuffer;
-    GLuint m_defaultFBO;
+    GLuint m_defaultFBO = 2;
     GLuint m_postprocess_shader;
     std::map<std::string, GLuint> scene_textures;
+    // Extra Credit: Shadow mapping
+    const int shadow_width = 4096, shadow_height = 4096;
+    GLuint m_depth_fbos[8] = {0}; // directional lights only
+    GLuint m_depth_maps[8] = {0}; // directional lights only
+    int directional_light_count = 0;
+    GLuint m_shadowmapping_shader;
 };

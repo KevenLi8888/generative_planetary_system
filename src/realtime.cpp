@@ -4,6 +4,7 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <iostream>
+#include <QOpenGLFramebufferObject>
 #include "settings.h"
 
 #include "utils/shaderloader.h"
@@ -48,17 +49,21 @@ void Realtime::finish() {
     glDeleteVertexArrays(4, &vaos_low[0]);
     glDeleteProgram(m_shader);
     glDeleteProgram(m_postprocess_shader);
+    glDeleteProgram(m_shadowmapping_shader);
     glDeleteVertexArrays(1, &m_fullscreen_vao);
     glDeleteBuffers(1, &m_fullscreen_vbo);
     glDeleteTextures(1, &m_fbo_postprocess);
     glDeleteRenderbuffers(1, &m_fbo_renderbuffer);
     glDeleteFramebuffers(1, &m_fbo);
+    for (int i = 0; i < directional_light_count; ++i) {
+        glDeleteTextures(1, &m_depth_maps[i]);
+        glDeleteFramebuffers(1, &m_depth_fbos[i]);
+    }
     this->doneCurrent();
 }
 
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
-    m_defaultFBO = 2;
 
     m_timer = startTimer(1000/60);
     m_elapsedTimer.start();
@@ -89,13 +94,18 @@ void Realtime::initializeGL() {
                                                              ":/resources/shaders/postprocessing.frag");
     initializeFullscreenQuad();
     makeFBO();
+
+    m_shadowmapping_shader = ShaderLoader::createShaderProgram(":/resources/shaders/shadowmapping.vert",
+                                                               ":/resources/shaders/shadowmapping.frag");
     initialized = true;
 }
 
 void Realtime::paintGL() {
     // Students: anything requiring OpenGL calls every frame should be done here
 
-    // TODO: separate codes for postprocessing (if not toggled, do not create FBO...)
+    // Shadow Mapping
+    paintDepthMaps();
+
     // Task 24: Bind our FBO
     glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
@@ -106,7 +116,8 @@ void Realtime::paintGL() {
     paintScene();
 
     // Task 25: Bind the default framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
+//    glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
+    QOpenGLFramebufferObject::bindDefault();
 
     // Task 28: Call glViewport
     glViewport(0, 0, size().width() * m_devicePixelRatio, size().height() * m_devicePixelRatio);
@@ -115,7 +126,7 @@ void Realtime::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Task 27: Call paintTexture to draw our FBO color attachment texture | Task 31: Set bool parameter to true
-    paintPostProcess(m_fbo_postprocess, true);
+    paintPostProcess(m_fbo_postprocess);
 }
 
 void Realtime::resizeGL(int w, int h) {
@@ -150,6 +161,9 @@ void Realtime::sceneChanged() {
                     settings.farPlane);
 
     initializeShapes();
+
+    // Shadow Mapping
+    makeDepthMaps();
 
     update(); // asks for a PaintGL() call to occur
 }
@@ -323,6 +337,7 @@ void Realtime::paintScene() {
             auto penumbra_location = glGetUniformLocation(m_shader, &penumbra_name[0]);
             auto angle_name = "lights[" + std::to_string(i) + "].angle";
             auto angle_location = glGetUniformLocation(m_shader, &angle_name[0]);
+            auto light_space_mat_name = "light_space_mat[" + std::to_string(i) + "]";
             if (i < metaData.lights.size()) {
                 switch (metaData.lights[i].type) {
                     case LightType::LIGHT_DIRECTIONAL:
@@ -344,9 +359,30 @@ void Realtime::paintScene() {
                 glUniform4fv(light_pos_location, 1, &metaData.lights[i].pos[0]);
                 glUniform1f(penumbra_location, metaData.lights[i].penumbra);
                 glUniform1f(angle_location, metaData.lights[i].angle);
+
+                // Shadow Mapping
+                if (metaData.lights[i].type == LightType::LIGHT_DIRECTIONAL) {
+                    auto light_projection = glm::ortho(-10.f, 10.f, -10.f, 10.f,
+                                                       settings.nearPlane, settings.farPlane);
+                    auto light_inv_dir = glm::vec3(-metaData.lights[i].dir);
+                    auto light_view = glm::lookAt(light_inv_dir,
+                                                  glm::vec3(0.f, 0.f, 0.f),
+                                                  glm::vec3(0.f, 1.f, 0.f));
+                    auto light_space_matrix = light_projection * light_view;
+                    glUniformMatrix4fv(glGetUniformLocation(m_shader, &light_space_mat_name[0]),
+                                       1, GL_FALSE, &light_space_matrix[0][0]);
+                }
+                else {
+                    auto light_space_matrix = glm::mat4(1.0);
+                    glUniformMatrix4fv(glGetUniformLocation(m_shader, &light_space_mat_name[0]),
+                                       1, GL_FALSE, &light_space_matrix[0][0]);
+                }
             }
             else {
                 glUniform1i(light_type_location, -1);
+                auto light_space_matrix = glm::mat4(1.0);
+                glUniformMatrix4fv(glGetUniformLocation(m_shader, &light_space_mat_name[0]),
+                                   1, GL_FALSE, &light_space_matrix[0][0]);
             }
         }
 
@@ -355,9 +391,36 @@ void Realtime::paintScene() {
         auto cam_pos_location = glGetUniformLocation(m_shader, "cam_pos_world");
         glUniform4fv(cam_pos_location, 1, &cam_pos[0]);
 
-        // Texture
+        // Extra Credit - Texture Mapping
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_texture);
+
+        // Extra Credit - Shadow Mapping
+        glUniform1i(glGetUniformLocation(m_shader, "enable_shadow_mapping"), settings.extraCredit4);
+        for (int i = 0; i < 8; ++i) {
+            auto shadow_map_pos_name = "shadow_map[" + std::to_string(i) + "]";
+            auto shadow_map_pos = glGetUniformLocation(m_shader, &shadow_map_pos_name[0]);
+            glUniform1i(shadow_map_pos, i+1);
+        }
+        // To support up to 8 directional lights... it's dirty code but it works
+        // Using sample2DArray should be a good idea
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, m_depth_maps[0]);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, m_depth_maps[1]);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, m_depth_maps[2]);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, m_depth_maps[3]);
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, m_depth_maps[4]);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, m_depth_maps[5]);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_2D, m_depth_maps[6]);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, m_depth_maps[7]);
+
         glDrawArrays(GL_TRIANGLES, 0, current_shape->getVertexData().size()/9);
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
@@ -619,13 +682,17 @@ void Realtime::makeFBO() {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_fbo_renderbuffer);
 
     // Task 22: Unbind the FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
+//    glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
+    QOpenGLFramebufferObject::bindDefault();
 }
 
-void Realtime::paintPostProcess(GLuint texture, bool post_process) {
+void Realtime::paintPostProcess(GLuint texture) {
     glUseProgram(m_postprocess_shader);
     // Task 32: Set your bool uniform on whether or not to filter the texture drawn
-    glUniform1i(glGetUniformLocation(m_postprocess_shader, "post_process"), post_process);
+    glUniform1i(glGetUniformLocation(m_postprocess_shader, "grayscale"), settings.perPixelFilter);
+    glUniform1i(glGetUniformLocation(m_postprocess_shader, "invert"), settings.perPixelFilter2);
+    glUniform1i(glGetUniformLocation(m_postprocess_shader, "blur"), settings.kernelBasedFilter);
+    glUniform1i(glGetUniformLocation(m_postprocess_shader, "sharpen"), settings.kernelBasedFilter2);
     glUniform1f(glGetUniformLocation(m_postprocess_shader, "width"), size().width() * m_devicePixelRatio);
     glUniform1f(glGetUniformLocation(m_postprocess_shader, "height"), size().height() * m_devicePixelRatio);
 
@@ -667,4 +734,89 @@ QImage Realtime::loadImageFromFile(const std::string &file_path) {
     auto file = QString::fromStdString(file_path);
     auto m_image = QImage(file).convertToFormat(QImage::Format_RGBA8888).mirrored();
     return m_image;
+}
+
+// Shadow Mapping - Project 6 Extra Credit
+
+void Realtime::makeDepthMaps() {
+    // TODO: delete previous texture / fbos?
+    directional_light_count = 0;
+    for (auto& light : metaData.lights) {
+        if (metaData.lights.empty()) {
+            break;
+        }
+        if (light.type == LightType::LIGHT_DIRECTIONAL) {
+            directional_light_count += 1;
+        }
+    }
+    for (int i = 0; i < directional_light_count; ++i) {
+        glGenFramebuffers(1, &m_depth_fbos[i]);
+        glGenTextures(1, &m_depth_maps[i]);
+        glActiveTexture(GL_TEXTURE0); // do we need this? THIS IS THE LINE WHERE STRANGE BUG OCCURS (MAKES UI DISAPPEAR when set to GL_TEXTURE1)
+        glBindTexture(GL_TEXTURE_2D, m_depth_maps[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadow_width, shadow_height,
+                     0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_depth_fbos[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depth_maps[i], 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+//        glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
+        QOpenGLFramebufferObject::bindDefault();
+    }
+}
+
+void Realtime::paintDepthMaps() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    int current_dir_light = 0;
+    glUseProgram(m_shadowmapping_shader);
+    for (auto& light : metaData.lights) {
+        if (metaData.shapes.empty()) {
+            break;
+        }
+        if (light.type == LightType::LIGHT_DIRECTIONAL) {
+            auto light_projection = glm::ortho(-10.f, 10.f, -10.f, 10.f,
+                                               settings.nearPlane, settings.farPlane);
+            auto light_inv_dir = glm::vec3(-light.dir);
+            auto light_view = glm::lookAt(light_inv_dir,
+                                               glm::vec3(0.f, 0.f, 0.f),
+                                               glm::vec3(0.f, 1.f, 0.f));
+            auto light_space_matrix = light_projection * light_view;
+            glUniformMatrix4fv(glGetUniformLocation(m_shadowmapping_shader, "light_space_matrix"),
+                               1, GL_FALSE, &light_space_matrix[0][0]);
+            // draw to depth map
+            glBindFramebuffer(GL_FRAMEBUFFER, m_depth_fbos[current_dir_light]);
+            glViewport(0, 0, shadow_width, shadow_height);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            for (auto& shape: metaData.shapes) {
+                Primitive* current_shape;
+                if (settings.extraCredit2) {
+                    current_shape = getCurrentShape(shape.primitive.type, getDetailLevelByDistance(shape));
+                }
+                else if (settings.extraCredit1) {
+                    current_shape = getCurrentShape(shape.primitive.type, getDetailLevelByNumberOfObjects(metaData));
+                }
+                else {
+                    current_shape = getCurrentShape(shape.primitive.type, Detail::DETAIL_MID);
+                }
+                glBindVertexArray(current_shape->getVAOId());
+                auto m_model = shape.ctm;
+                glUniformMatrix4fv(glGetUniformLocation(m_shadowmapping_shader, "model_mat_1"),
+                                   1, GL_FALSE, &m_model[0][0]);
+//                glActiveTexture(GL_TEXTURE0);
+//                glBindTexture(GL_TEXTURE_2D, m_depth_maps[current_dir_light]);
+                glDrawArrays(GL_TRIANGLES, 0, current_shape->getVertexData().size()/9);
+//                glBindTexture(GL_TEXTURE_2D, 0);
+                glBindVertexArray(0);
+            }
+//            glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
+            QOpenGLFramebufferObject::bindDefault();
+            current_dir_light += 1;
+        }
+    }
+    glUseProgram(0);
 }

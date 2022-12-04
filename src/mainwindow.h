@@ -23,13 +23,17 @@ private:
     void connectNear();
     void connectFar();
     void connectPerPixelFilter();
+    void connectPerPixelFilter2();
     void connectKernelBasedFilter();
+    void connectKernelBasedFilter2();
     void connectUploadFile();
     void connectExtraCredit();
 
     Realtime *realtime;
     QCheckBox *filter1;
     QCheckBox *filter2;
+    QCheckBox *filter3;
+    QCheckBox *filter4;
     QPushButton *uploadFile;
     QSlider *p1Slider;
     QSlider *p2Slider;
@@ -48,7 +52,9 @@ private:
 
 private slots:
     void onPerPixelFilter();
+    void onPerPixelFilter2();
     void onKernelBasedFilter();
+    void onKernelBasedFilter2();
     void onUploadFile();
     void onValChangeP1(int newValue);
     void onValChangeP2(int newValue);

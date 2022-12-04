@@ -97,11 +97,11 @@ void Sphere::makeWedge(float currentTheta, float nextTheta) {
         auto current_phi = i * stride;
         // for OpenGL to correctly handle uv interpolation
         if (current_phi == 0) {
-            current_phi += 0.001;
+            current_phi += 0.0001;
         }
         else if (abs(current_phi + stride - M_PI) <= 0.0001) {
             // takes float precision into consideration
-            current_phi -= 0.001;
+            current_phi -= 0.0001;
         }
         current_top_left = {r * sin(current_phi) * sin(currentTheta),
                             r * cos(current_phi),
@@ -132,11 +132,11 @@ void Sphere::makePrimitive() {
         // if starts at 0, it's hard to handle the edge case (pi/2 point might be in the middle of a step)
         // so starts at pi/2
         if (currentTheta == 0) {
-            currentTheta += 0.001;
+            currentTheta += 0.0001;
         }
         if (abs(nextTheta - (2*M_PI + M_PI/2)) <= 0.0001) {
             // takes float precision into consideration
-            nextTheta -= 0.001;
+            nextTheta -= 0.0001;
         }
         makeWedge(currentTheta, nextTheta);
     }
@@ -256,11 +256,11 @@ void Cylinder::makePrimitive() {
         float currentTheta = i * thetaStep + M_PI/2;
         float nextTheta = (i+1) * thetaStep + M_PI/2;
         if (currentTheta == 0) {
-            currentTheta += 0.001;
+            currentTheta += 0.0001;
         }
         if (abs(nextTheta - (2*M_PI + M_PI/2)) <= 0.0001) {
             // takes float precision into consideration
-            nextTheta -= 0.001;
+            nextTheta -= 0.0001;
         }
         makeSide(currentTheta, nextTheta);
         makeCap(currentTheta, nextTheta);
@@ -344,7 +344,7 @@ void Cone::makeTipTile(glm::vec3 top, glm::vec3 left, glm::vec3 right, float cur
     auto n_left = glm::normalize(glm::vec3(2*left.x, -0.5*left.y+0.25, 2*left.z));
     auto n_right = glm::normalize(glm::vec3(2*right.x, -0.5*right.y+0.25, 2*right.z));
     // modified for OpenGL to correctly interpolates uv
-    top = top + glm::normalize(((left - top) + (right - top))) * float(0.001);
+    top = top + glm::normalize(((left - top) + (right - top))) * float(0.0001);
     insertVec3(m_vertexData, top);
     insertVec3(m_vertexData, n_top);
     insertVec3(m_vertexData, getUV(top, IntersectLocation::SIDE));
@@ -392,11 +392,11 @@ void Cone::makePrimitive() {
         float currentTheta = i * thetaStep + M_PI/2;
         float nextTheta = (i+1) * thetaStep + M_PI/2;
         if (currentTheta == 0) {
-            currentTheta += 0.001;
+            currentTheta += 0.0001;
         }
         if (abs(nextTheta - (2*M_PI + M_PI/2)) <= 0.0001) {
             // takes float precision into consideration
-            nextTheta -= 0.001;
+            nextTheta -= 0.0001;
         }
         makeSide(currentTheta, nextTheta);
         makeCap(currentTheta, nextTheta);

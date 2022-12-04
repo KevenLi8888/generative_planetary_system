@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Specifies required Qt components
+set(CMAKE_PREFIX_PATH "/Users/kevenli/Qt/6.2.4/macos/lib/cmake")
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Gui)
 find_package(Qt6 REQUIRED COMPONENTS OpenGL)
@@ -68,6 +69,8 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         resources/shaders/default.vert
         resources/shaders/postprocessing.frag
         resources/shaders/postprocessing.vert
+        resources/shaders/shadowmapping.frag
+        resources/shaders/shadowmapping.vert
 )
 
 # GLEW: this provides support for Windows (including 64-bit)

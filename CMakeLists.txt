@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Specifies required Qt components
-# set(CMAKE_PREFIX_PATH "/Users/kevenli/Qt/6.2.4/macos/lib/cmake") // make things work in CLion IDE
+# set(CMAKE_PREFIX_PATH "/Users/kevenli/Qt/6.2.4/macos/lib/cmake") # make things work in CLion IDE
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Gui)
 find_package(Qt6 REQUIRED COMPONENTS OpenGL)

@@ -52,6 +52,7 @@ private:
         std::string code;
         QString filepathStr = QString(filepath);
         QFile file(filepathStr);
+
         if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             QTextStream stream(&file);
             code = stream.readAll().toStdString();

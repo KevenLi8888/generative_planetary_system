@@ -38,6 +38,8 @@ add_executable(${PROJECT_NAME}
     src/shape/cone.cpp
     src/shape/cylinder.cpp
     src/shape/sphere.cpp
+    src/planet/planetarysystem.cpp
+    src/planet/planet.cpp
 
     src/mainwindow.h
     src/realtime.h
@@ -54,6 +56,8 @@ add_executable(${PROJECT_NAME}
     src/shape/cone.h
     src/shape/cylinder.h
     src/utils/texturemap.h
+    src/planet/planetarysystem.h
+    src/planet/planet.h
 )
 
 # GLM: this creates its library and allows you to `#include "glm/..."`

@@ -16,6 +16,7 @@ struct Settings {
     bool extraCredit3 = false;
     bool extraCredit4 = false;
     bool extraCredit5 = false;
+    bool GPS = false;
 };
 
 

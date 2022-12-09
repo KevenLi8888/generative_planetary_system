@@ -26,6 +26,7 @@ private:
     void connectKernelBasedFilter();
     void connectUploadFile();
     void connectExtraCredit();
+    void connectGPS();
 
     Realtime *realtime;
     QCheckBox *filter1;
@@ -47,6 +48,9 @@ private:
     QCheckBox *ec4;
     QCheckBox *ec5;
 
+    // Final Project
+    QCheckBox *GPS;
+
 private slots:
     void onPerPixelFilter();
     void onKernelBasedFilter();
@@ -64,4 +68,7 @@ private slots:
     void onExtraCredit3();
     void onExtraCredit4();
     void onExtraCredit5();
+
+    // Final Project
+    void onGPS();
 };

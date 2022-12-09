@@ -7,7 +7,7 @@
 #include <iostream>
 
 // From Lab 5
-void renderNodeHelper(SceneNode *n, glm::mat4 m, std::vector<RenderShapeData> &shapes) {
+void renderNodeHelper(SceneNode *n, glm::mat4 m, std::vector<RenderShapeData*> &shapes) {
     glm::mat4 CTM = m;
     for (auto &t : n->transformations) {
         switch (t->type) {
@@ -26,7 +26,8 @@ void renderNodeHelper(SceneNode *n, glm::mat4 m, std::vector<RenderShapeData> &s
         }
     }
     for (auto &p : n->primitives) {
-        shapes.push_back(RenderShapeData {*p, CTM});
+        auto data = new RenderShapeData {*p, CTM};
+        shapes.push_back(data);
     }
     for (auto &c : n->children) {
         renderNodeHelper(c, CTM, shapes);

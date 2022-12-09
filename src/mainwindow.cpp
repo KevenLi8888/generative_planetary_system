@@ -23,6 +23,16 @@ void MainWindow::initialize() {
     QFont font;
     font.setPointSize(12);
     font.setBold(true);
+    QFont section_font;
+    section_font.setPointSize(16);
+    section_font.setBold(true);
+
+    QLabel *GPS_label = new QLabel(); // Final Project label
+    GPS_label->setText("Generative Planetary Systems");
+    GPS_label->setFont(section_font);
+    QLabel *realtime_label = new QLabel(); // Realtime Project label
+    realtime_label->setText("Realtime Engine");
+    realtime_label->setFont(section_font);
     QLabel *tesselation_label = new QLabel(); // Parameters label
     tesselation_label->setText("Tesselation");
     tesselation_label->setFont(font);
@@ -43,8 +53,6 @@ void MainWindow::initialize() {
     near_label->setText("Near Plane:");
     QLabel *far_label = new QLabel(); // Far plane label
     far_label->setText("Far Plane:");
-
-
 
     // Create checkbox for per-pixel filter
     filter1 = new QCheckBox();
@@ -161,6 +169,14 @@ void MainWindow::initialize() {
     ec5->setText(QStringLiteral("Texture Mapping"));
     ec5->setChecked(false);
 
+    // Final Project:
+    GPS = new QCheckBox();
+    GPS->setText(QStringLiteral("Enable"));
+    GPS->setChecked(false);
+
+    vLayout->addWidget(GPS_label);
+    vLayout->addWidget(GPS);
+    vLayout->addWidget(realtime_label);
     vLayout->addWidget(uploadFile);
     vLayout->addWidget(tesselation_label);
     vLayout->addWidget(param1_label);
@@ -208,6 +224,7 @@ void MainWindow::connectUIElements() {
     connectNear();
     connectFar();
     connectExtraCredit();
+    connectGPS();
 }
 
 void MainWindow::connectPerPixelFilter() {
@@ -252,6 +269,10 @@ void MainWindow::connectExtraCredit() {
     connect(ec3, &QCheckBox::clicked, this, &MainWindow::onExtraCredit3);
     connect(ec4, &QCheckBox::clicked, this, &MainWindow::onExtraCredit4);
     connect(ec5, &QCheckBox::clicked, this, &MainWindow::onExtraCredit5);
+}
+
+void MainWindow::connectGPS() {
+    connect(GPS, &QCheckBox::clicked, this, &MainWindow::onGPS);
 }
 
 void MainWindow::onPerPixelFilter() {
@@ -347,4 +368,9 @@ void MainWindow::onExtraCredit4() {
 void MainWindow::onExtraCredit5() {
     settings.extraCredit5 = !settings.extraCredit5;
     realtime->settingsChanged();
+}
+
+void MainWindow::onGPS() {
+    settings.GPS = !settings.GPS;
+    realtime->sceneChanged();
 }

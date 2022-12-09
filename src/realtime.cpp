@@ -56,7 +56,7 @@ void Realtime::resetConfig() {
         settings.extraCredit2,
         settings.extraCredit3,
         settings.extraCredit4,
-        settings.extraCredit5
+        settings.extraCredit5,
     };
 }
 
@@ -217,7 +217,7 @@ void Realtime::sceneChanged() {
 }
 
 void Realtime::settingsChanged() {
-    if (settings.sceneFilePath == "") return;
+    if (settings.sceneFilePath == "" && !settings.GPS) return;
 
     // Determine what needs to be updated
     bool needUpdateCamera = settings.nearPlane != m_config.nearPlane ||
@@ -278,6 +278,11 @@ void Realtime::timerEvent(QTimerEvent *event) {
 
     // Use deltaTime and m_keyMap here to move around
     m_renderer.moveCamera(m_keyMap, deltaTime * 5);
+
+    // Final Project
+    if (settings.GPS) {
+        m_renderer.updatePlanets(deltaTime);
+    }
 
     update(); // asks for a PaintGL() call to occur
 }

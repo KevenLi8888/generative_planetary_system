@@ -39,6 +39,68 @@ std::vector<GLfloat> FULLSCREEN_QUAD_DATA =
      1.0f,  0.0f,
 };
 
+// Final Project
+SceneGlobalData DEFAULT_GLOBAL = {
+    0.5, 0.5, 0.5,  // ka, kd, ks
+};
+SceneCameraData DEFAULT_CAMERA = {
+    glm::vec4(6, 3, 6, 1),    // pos
+    glm::vec4(-3, -1.5, -3, 0), // look
+    glm::vec4(0, 1, 0, 0),      // up
+    glm::radians(30.0),         // heightAngle
+};
+std::vector<SceneLightData> DEFAULT_LIGHTS {
+    SceneLightData {
+        0,                              // id
+        LightType::LIGHT_DIRECTIONAL,   // type
+        glm::vec4(1, 1, 1, 1),          // color
+        glm::vec3(1, 0, 0),             // function
+        glm::vec4(0, 0, 0, 1),          // pos
+        glm::vec4(-1, 0, 0, 0)        // dir
+    },
+    SceneLightData {
+        0,                              // id
+        LightType::LIGHT_DIRECTIONAL,   // type
+        glm::vec4(1, 1, 1, 1),          // color
+        glm::vec3(1, 0, 0),             // function
+        glm::vec4(0, 0, 0, 1),          // pos
+        glm::vec4(1, 0, 0, 0)        // dir
+    },
+    SceneLightData {
+        0,                              // id
+        LightType::LIGHT_DIRECTIONAL,   // type
+        glm::vec4(1, 1, 1, 1),          // color
+        glm::vec3(1, 0, 0),             // function
+        glm::vec4(0, 0, 0, 1),          // pos
+        glm::vec4(0, 1, 0, 0)        // dir
+    },
+    SceneLightData {
+        0,                              // id
+        LightType::LIGHT_DIRECTIONAL,   // type
+        glm::vec4(1, 1, 1, 1),          // color
+        glm::vec3(1, 0, 0),             // function
+        glm::vec4(0, 0, 0, 1),          // pos
+        glm::vec4(0, -1, 0, 0)        // dir
+    },
+    SceneLightData {
+        0,                              // id
+        LightType::LIGHT_DIRECTIONAL,   // type
+        glm::vec4(1, 1, 1, 1),          // color
+        glm::vec3(1, 0, 0),             // function
+        glm::vec4(0, 0, 0, 1),          // pos
+        glm::vec4(0, 0, 1, 0)        // dir
+    },
+    SceneLightData {
+        0,                              // id
+        LightType::LIGHT_DIRECTIONAL,   // type
+        glm::vec4(1, 1, 1, 1),          // color
+        glm::vec3(1, 0, 0),             // function
+        glm::vec4(0, 0, 0, 1),          // pos
+        glm::vec4(0, 0, -1, 0)        // dir
+    },
+};
+
+
 void Renderer::initialize(int screen_w, int screen_h) {
     m_screen_width = screen_w;
     m_screen_height = screen_h;
@@ -98,7 +160,15 @@ void Renderer::clearFBO() {
 void Renderer::updateScene(int width, int height) {
     RenderData new_data;
 
-    if (!SceneParser::parse(settings.sceneFilePath, new_data)) {
+    if (settings.GPS) {
+        m_ps = PlanetarySystem();
+        new_data = {
+            DEFAULT_GLOBAL,
+            DEFAULT_CAMERA,
+            DEFAULT_LIGHTS,
+            m_ps.generateSystem()
+        };
+    } else if (!SceneParser::parse(settings.sceneFilePath, new_data)) {
         std::cout << "Failed to parse scene file: " + settings.sceneFilePath << std::endl;
         return;
     }
@@ -110,6 +180,11 @@ void Renderer::updateScene(int width, int height) {
     m_camera = Camera(width, height, m_data.cameraData);
     updateGeometry();
     generateTextures();
+}
+
+// Final Project
+void Renderer::updatePlanets(float deltaTime) {
+    m_ps.update(deltaTime);
 }
 
 // Recompute the mesh data for each type of implicit objects
@@ -127,8 +202,9 @@ void Renderer::updateGeometry() {
 // Creates a mapping between texture filename and GL Texture
 void Renderer::generateTextures() {
     for (auto &shape: m_data.shapes) {
-        if (shape.primitive.material.textureMap.isUsed) {
-            auto fpath = shape.primitive.material.textureMap.filename;
+        if (shape->primitive.material.textureMap.isUsed) {
+            auto fpath = shape->primitive.material.textureMap.filename;
+            std::cout << fpath << std::endl;
             if (m_texture_map.find(fpath) == m_texture_map.end()) {
                 auto img = QImage(fpath.data()).convertToFormat(QImage::Format_RGBA8888).mirrored();
                 GLuint texture;
@@ -267,8 +343,8 @@ void Renderer::renderGeometry(GLuint shader) {
     }
 
     for (auto &shape: m_data.shapes) {
-        auto model = shape.ctm;
-        auto primitive = shape.primitive;
+        auto model = shape->ctm;
+        auto primitive = shape->primitive;
         auto model3invt = glm::inverse(glm::mat3(model));
         MeshData mesh = m_meshMap[primitive.type];
 
@@ -294,9 +370,9 @@ void Renderer::renderGeometry(GLuint shader) {
         glUniform1f(glGetUniformLocation(shader, "material.blend"), primitive.material.blend);
 
         // Load texture if necessasry
-        if (shape.primitive.material.textureMap.isUsed) {
+        if (shape->primitive.material.textureMap.isUsed) {
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, m_texture_map[shape.primitive.material.textureMap.filename]);
+            glBindTexture(GL_TEXTURE_2D, m_texture_map[shape->primitive.material.textureMap.filename]);
         }
 
         // Draw shape
@@ -352,4 +428,10 @@ void Renderer::clearTextureData() {
         glDeleteTextures(1, &it.second);
     }
     m_texture_map.clear();
+}
+
+void Renderer::clearSceneData() {
+    for (auto &it: m_data.shapes) {
+        delete it;
+    }
 }

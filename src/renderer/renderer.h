@@ -8,7 +8,7 @@
 #include <GL/glew.h>
 
 #include "camera/camera.h"
-#include "utils/sceneparser.h"
+#include "planet/planetarysystem.h"
 #include <unordered_map>
 
 struct MeshData {
@@ -30,6 +30,7 @@ public:
     void initialize(int screen_w, int screen_h);
     void updateScene(int width, int height);
     void updateGeometry();
+    void updatePlanets(float deltaTime);
     void updateCamera(int width, int hieght);
     void moveCamera(std::unordered_map<Qt::Key, bool> &key_map, float dist);
     void rotateCamera(float dx, float dy);
@@ -37,6 +38,7 @@ public:
     void render(GLuint phong_shader, GLuint texture_shader);
     void clearGeometryData();
     void clearTextureData();
+    void clearSceneData();
     void clearFBO();
 
 private:
@@ -63,4 +65,7 @@ private:
     // Texture related resources
    std::unordered_map<std::string, GLuint> m_texture_map;
    void generateTextures();
+
+   // Final Project
+   PlanetarySystem m_ps;
 };

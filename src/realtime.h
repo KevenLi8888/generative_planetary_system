@@ -69,6 +69,9 @@ private:
     void makeDepthMaps();
     void paintDepthMaps();
 
+    // Final Project
+    void generateNormalMap();
+
     // Tick Related Variables
     int m_timer;                                        // Stores timer which attempts to run ~60 times per second
     QElapsedTimer m_elapsedTimer;                       // Stores timer which keeps track of actual time between frames
@@ -119,4 +122,7 @@ private:
     GLuint m_depth_maps[8] = {0}; // directional lights only
     int directional_light_count = 0;
     GLuint m_shadowmapping_shader;
+
+    // Final Project
+    GLuint m_normal_map;
 };

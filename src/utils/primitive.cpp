@@ -14,12 +14,22 @@ void Primitive::makeVBO() {
     makePrimitive();
     glBufferData(GL_ARRAY_BUFFER, m_vertexData.size() * sizeof(GLfloat),
                  m_vertexData.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // Normal Mapping - Tangents
+    glGenBuffers(1, &m_vbo_tangent);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_tangent);
+    computeTangents();
+    glBufferData(GL_ARRAY_BUFFER, m_vertex_tangents.size() * sizeof(GLfloat),
+                 m_vertex_tangents.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void Primitive::makeVAO() {
     glGenVertexArrays(1, &m_vao);
     glBindVertexArray(m_vao);
 
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     auto stride = sizeof(GL_FLOAT) * 9;
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void *>(0));
@@ -29,6 +39,14 @@ void Primitive::makeVAO() {
     auto uv_offset = sizeof(GL_FLOAT) * 6;
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void *>(uv_offset));
+
+    // Normal Mapping - Tangents
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_tangent);
+    auto stride2 = sizeof(GL_FLOAT) * 6;
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride2, reinterpret_cast<void *>(0));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, stride2, reinterpret_cast<void *>(sizeof(GL_FLOAT) * 3));
 }
 
 GLuint Primitive::getVBOId() {
@@ -49,6 +67,37 @@ int Primitive::getParam1() {
 
 int Primitive::getParam2() {
     return m_param2;
+}
+
+// Normal Mapping
+void Primitive::computeTangents() {
+    for (int i = 0; i < m_vertexData.size()/9; i += 27) {
+        // per triangle (every 3 vertices)
+        auto stride = 9;
+        auto v0 = glm::vec3(m_vertexData[i], m_vertexData[i+1], m_vertexData[i+2]);
+        auto v1 = glm::vec3(m_vertexData[i + stride], m_vertexData[i+1 + stride], m_vertexData[i+2 + stride]);
+        auto v2 = glm::vec3(m_vertexData[i + stride*2], m_vertexData[i+1 + stride*2], m_vertexData[i+2 + stride*2]);
+        auto uv0 = glm::vec3(m_vertexData[i+6], m_vertexData[i+7], m_vertexData[i+8]);
+        auto uv1 = glm::vec3(m_vertexData[i+6 + stride], m_vertexData[i+7 + stride], m_vertexData[i+8 + stride]);
+        auto uv2 = glm::vec3(m_vertexData[i+6 + stride*2], m_vertexData[i+7 + stride*2], m_vertexData[i+8 + stride*2]);
+        auto delta_pos_1 = v1 - v0;
+        auto delta_pos_2 = v2 - v0;
+        auto delta_uv_1 = uv1 - uv0;
+        auto delta_uv_2 = uv2 - uv0;
+        float r = 1.f / (delta_uv_1.x * delta_uv_2.y - delta_uv_1.y * delta_uv_2.x);
+        auto tangent = (delta_pos_1 * delta_uv_2.y - delta_pos_2 * delta_uv_1.y) * r;
+        auto bitangent = (delta_pos_2 * delta_uv_1.x - delta_pos_1 * delta_uv_2.x) * r;
+
+        // Set the same tangent/bitangent for all three vertices of the triangle.
+        for (int j = 0; j < 3; ++j) {
+            insertVec3(m_vertex_tangents, tangent);
+            insertVec3(m_vertex_tangents, bitangent);
+        }
+    }
+}
+
+GLuint Primitive::getVBOTangentId() {
+    return m_vbo_tangent;
 }
 
 void Sphere::updateParams(int param1, int param2) {

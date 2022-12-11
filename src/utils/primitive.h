@@ -27,6 +27,7 @@ public:
     std::vector<float> getVertexData();
     int getParam1();
     int getParam2();
+    GLuint getVBOTangentId();
 
 private:
     virtual void makeSideTile(glm::vec3 topLeft,
@@ -34,6 +35,7 @@ private:
                       glm::vec3 bottomLeft,
                       glm::vec3 bottomRight) = 0;
     virtual void makePrimitive() = 0;
+    void computeTangents();
 
 protected:
     GLuint m_vbo;
@@ -42,6 +44,9 @@ protected:
     int m_param1 = -1;
     int m_param2 = -1;
     float m_radius = 0.5;
+    // Normal Mapping - Tangents and Bitangents
+    GLuint m_vbo_tangent;
+    std::vector<float> m_vertex_tangents;
 };
 
 class Sphere: public Primitive {

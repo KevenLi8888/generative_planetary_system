@@ -165,6 +165,9 @@ void Realtime::sceneChanged() {
     // Shadow Mapping
     makeDepthMaps();
 
+    // TODO: change to generate per primitive
+    generateNormalMap();
+
     update(); // asks for a PaintGL() call to occur
 }
 
@@ -338,6 +341,8 @@ void Realtime::paintScene() {
             auto angle_name = "lights[" + std::to_string(i) + "].angle";
             auto angle_location = glGetUniformLocation(m_shader, &angle_name[0]);
             auto light_space_mat_name = "light_space_mat[" + std::to_string(i) + "]";
+            auto light_dir_name = "light_dir[" + std::to_string(i) + "]";
+            auto light_pos_name = "light_pos[" + std::to_string(i) + "]";
             if (i < metaData.lights.size()) {
                 switch (metaData.lights[i].type) {
                     case LightType::LIGHT_DIRECTIONAL:
@@ -377,6 +382,10 @@ void Realtime::paintScene() {
                     glUniformMatrix4fv(glGetUniformLocation(m_shader, &light_space_mat_name[0]),
                                        1, GL_FALSE, &light_space_matrix[0][0]);
                 }
+
+                // Normal Mapping
+                glUniform4fv(glGetUniformLocation(m_shader, &light_dir_name[0]), 1, &metaData.lights[i].dir[0]);
+                glUniform4fv(glGetUniformLocation(m_shader, &light_pos_name[0]), 1, &metaData.lights[i].pos[0]);
             }
             else {
                 glUniform1i(light_type_location, -1);
@@ -420,6 +429,14 @@ void Realtime::paintScene() {
         glBindTexture(GL_TEXTURE_2D, m_depth_maps[6]);
         glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_2D, m_depth_maps[7]);
+
+        // Normal Mapping
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, m_normal_map);
+        glUniform1i(glGetUniformLocation(m_shader, "enable_normal_mapping"), settings.normalMapping);
+        glUniform1i(glGetUniformLocation(m_shader, "normal_map"), 9);
+
+        // Normal Mapping - Tangent Space
 
         glDrawArrays(GL_TRIANGLES, 0, current_shape->getVertexData().size()/9);
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -566,7 +583,7 @@ void Realtime::timerEvent(QTimerEvent *event) {
     m_elapsedTimer.restart();
 
     // Use deltaTime and m_keyMap here to move around
-    auto displacement = deltaTime * 5;
+    auto displacement = deltaTime * 10;
     if (m_keyMap[Qt::Key_W]) {
         auto new_pos = camera.getCameraPosition()
                 + displacement * glm::normalize(camera.getCameraLook());
@@ -713,7 +730,7 @@ void Realtime::loadTextures() {
     }
     scene_textures.clear();
     for (auto& shape: metaData.shapes) {
-        if (shape.primitive.material.textureMap.isUsed) {
+        if (shape.primitive.material.textureMap.isUsed and !scene_textures.contains(shape.primitive.material.textureMap.filename)) {
             auto image = loadImageFromFile(shape.primitive.material.textureMap.filename);
             GLuint texture;
             glGenTextures(1, &texture);
@@ -731,6 +748,7 @@ void Realtime::loadTextures() {
 }
 
 QImage Realtime::loadImageFromFile(const std::string &file_path) {
+    std::cout << file_path << std::endl;
     auto file = QString::fromStdString(file_path);
     auto m_image = QImage(file).convertToFormat(QImage::Format_RGBA8888).mirrored();
     return m_image;
@@ -819,4 +837,19 @@ void Realtime::paintDepthMaps() {
         }
     }
     glUseProgram(0);
+}
+
+// Final Project
+void Realtime::generateNormalMap() {
+    // Temporary Solution - load image from file
+    auto image = loadImageFromFile("/Users/kevenli/Developers/CSCI 2230 Computer Graphics/scenefiles/image/brickwall_normal.jpg");
+    glGenTextures(1, &m_normal_map);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_normal_map);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                 image.width(), image.height(), 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }

@@ -166,7 +166,9 @@ void Realtime::sceneChanged() {
     makeDepthMaps();
 
     // TODO: change to generate per primitive
-    generateNormalMap();
+    if (settings.normalMapping) {
+        generateNormalMap();
+    }
 
     update(); // asks for a PaintGL() call to occur
 }
@@ -731,18 +733,34 @@ void Realtime::loadTextures() {
     scene_textures.clear();
     for (auto& shape: metaData.shapes) {
         if (shape.primitive.material.textureMap.isUsed and !scene_textures.contains(shape.primitive.material.textureMap.filename)) {
-            auto image = loadImageFromFile(shape.primitive.material.textureMap.filename);
-            GLuint texture;
-            glGenTextures(1, &texture);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-                         image.width(), image.height(), 0,
-                         GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            scene_textures.emplace(shape.primitive.material.textureMap.filename, texture);
-            glBindTexture(GL_TEXTURE_2D, 0);
+            if (settings.proceduralTerrain) {
+                auto& color = m_terrain.generateTerrainColors();
+                auto resolution = m_terrain.getResolution();
+                glGenTextures(1, &m_color_map);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, m_color_map);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                             resolution, resolution, 0,
+                             GL_RGBA, GL_FLOAT, color.data());
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                scene_textures.emplace(shape.primitive.material.textureMap.filename, m_color_map);
+                glBindTexture(GL_TEXTURE_2D, 0);
+            }
+            else {
+                auto image = loadImageFromFile(shape.primitive.material.textureMap.filename);
+                GLuint texture;
+                glGenTextures(1, &texture);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, texture);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                             image.width(), image.height(), 0,
+                             GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                scene_textures.emplace(shape.primitive.material.textureMap.filename, texture);
+                glBindTexture(GL_TEXTURE_2D, 0);
+            }
         }
     }
 }
@@ -842,14 +860,21 @@ void Realtime::paintDepthMaps() {
 // Final Project
 void Realtime::generateNormalMap() {
     // Temporary Solution - load image from file
-    auto image = loadImageFromFile("/Users/kevenli/Developers/CSCI 2230 Computer Graphics/scenefiles/image/brickwall_normal.jpg");
+    auto image = loadImageFromFile("/Users/kevenli/Downloads/2604-normal.jpg");
+    auto& normal = m_terrain.generateTerrainNormals();
+    auto resolution = m_terrain.getResolution();
     glGenTextures(1, &m_normal_map);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_normal_map);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
                  image.width(), image.height(), 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+//                 resolution, resolution, 0,
+//                 GL_RGBA, GL_FLOAT, normal.data());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glBindTexture(GL_TEXTURE_2D, 0);
 }

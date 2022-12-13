@@ -18,6 +18,7 @@
 #include "utils/camera.h"
 #include "utils/primitive.h"
 #include "settings.h"
+#include "utils/terraingenerator.h"
 
 enum class Detail {
     DETAIL_HI,
@@ -125,4 +126,6 @@ private:
 
     // Final Project
     GLuint m_normal_map;
+    GLuint m_color_map;
+    TerrainGenerator m_terrain;
 };

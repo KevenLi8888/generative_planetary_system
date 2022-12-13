@@ -30,6 +30,8 @@ uniform vec4 cam_pos_world;
 uniform vec4 light_dir[8];
 uniform vec4 light_pos[8];
 
+uniform bool enable_terrain_generation;
+
 
 void main() {
     pos_world = vec3(model_mat * vec4(pos_object, 1));
@@ -42,18 +44,35 @@ void main() {
 
     // Normal Mapping
     vec3 T = normalize(inversed_transposed_model_mat * tangent);
+//    vec3 T = normalize(vec3(model_mat * vec4(tangent, 0)));
     vec3 N = n_world;
+//    vec3 N = normalize(vec3(model_mat * vec4(n_object, 0)));
 //    vec3 B = normalize(inversed_transposed_model_mat * bitangent);
     T = normalize(T - dot(T, N) * N);
     vec3 B = cross(N, T);
-//    vec4 B = normalize(inversed_transposed_model_mat * vec4(bitangent, 0.0));
-//    vec4 N = normalize(model_mat * vec4(n_object, 0.0));
-//    vec4 N = normalize(view_mat * vec4(n_world, 0.0));
     mat3 TBN = transpose(mat3(T, B, N));
+//    mat3 TBN = mat3(T, B, N);
     cam_pos_tangent_space = vec4(TBN * vec3(cam_pos_world), 1.0);
     pos_tangent_space = TBN * pos_world;
     for (int i = 0; i < 8; ++i) {
         light_dir_tangent_space[i] = vec4(TBN * vec3(light_dir[i]), 1.0);
         light_pos_tangent_space[i] = vec4(TBN * vec3(light_pos[i]), 1.0);
     }
+
+    // camera space
+////    vec3 T = normalize(vec3(view_mat * vec4(inversed_transposed_model_mat * tangent, 0)));
+//    vec3 T = normalize(vec3(view_mat * model_mat * vec4(tangent, 0)));
+//    //    vec3 T = normalize(vec3(model_mat * vec4(tangent, 0)));
+//    vec3 N = normalize(vec3(view_mat * model_mat * vec4(n_object, 0)));
+//    //    vec3 B = normalize(inversed_transposed_model_mat * bitangent);
+////    T = normalize(T - dot(T, N) * N);
+////    vec3 B = cross(N, T);
+//    vec3 B = normalize(vec3(view_mat * model_mat * vec4(bitangent, 0)));
+//    mat3 TBN = transpose(mat3(T, B, N));
+//    cam_pos_tangent_space = vec4(TBN * vec3(0, 0, 0), 1.0);
+//    pos_tangent_space = TBN * vec3(view_mat * vec4(pos_world, 1));
+//    for (int i = 0; i < 8; ++i) {
+//        light_dir_tangent_space[i] = vec4(TBN * vec3(view_mat * light_dir[i]), 1.0);
+//        light_pos_tangent_space[i] = vec4(TBN * vec3(view_mat * light_pos[i]), 1.0);
+//    }
 }

@@ -90,9 +90,19 @@ void main() {
 
     // normal mapping
     if (enable_normal_mapping) {
-        normalized_n_world = vec4(texture(normal_map, vec2(texture_u, texture_v)).rgb, 0.0);
+        // Average the normals from normal map to make it smooth
+        float offset = 0.001;
+        vec2 uv0 = vec2(texture_u, texture_v);
+        vec2 uv1 = vec2(texture_u, texture_v) + vec2(offset, 0);
+        vec2 uv2 = vec2(texture_u, texture_v) + vec2(0, offset);
+        vec4 n0 = vec4(texture(normal_map, uv0).rgb, 0.0);
+        n0 = normalize(n0 * 2.0 - 1.0);
+        vec4 n1 = vec4(texture(normal_map, uv1).rgb, 0.0);
+        n1 = normalize(n1 * 2.0 - 1.0);
+        vec4 n2 = vec4(texture(normal_map, uv2).rgb, 0.0);
+        n2 = normalize(n2 * 2.0 - 1.0);
 //        normalized_n_world = texture(normal_map, vec2(texture_u, texture_v));
-        normalized_n_world = normalize(normalized_n_world * 2.0 - 1.0);
+        normalized_n_world = normalize((n0 + n1 + n2)/2);
         pos = pos_tangent_space;
         cam_pos = cam_pos_tangent_space;
         for (int i = 0; i < 8; ++i) {
@@ -138,7 +148,7 @@ void main() {
             float fatt = min(1.f, 1.f / (light.function.x + distance*light.function.y + pow(distance, 2.f)*light.function.z));
             float outer = light.angle;
             float inner = outer - light.penumbra;
-            vec4 ray_dir = vec4(pos, 1.f) - lights_pos[i];
+            vec4 ray_dir = vec4(pos_world, 1.f) - light.pos;
             float angle = acos(dot(lights_dir[i], ray_dir) / (length(lights_dir[i]) * length(ray_dir)));
             vec4 li = normalize(lights_pos[i] - vec4(pos, 1.f));
             if (dot(normalized_n_world, li) > 0 && angle <= inner) {

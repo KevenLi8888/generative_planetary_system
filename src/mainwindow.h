@@ -50,6 +50,7 @@ private:
     QCheckBox *orbitCamera;
     QCheckBox *showOrbits;
     QCheckBox *proceduralTexture;
+    QCheckBox *normalMapping;
     QSlider *numPlanetSlider;
     QSpinBox *numPlanetBox;
 
@@ -76,5 +77,6 @@ private slots:
     void onOrbitCamera();
     void onShowOrbits();
     void onProceduralTexture();
+    void onNormalMapping();
     void onValChangeG1(int newValue);
 };

@@ -20,7 +20,7 @@ struct Settings {
     bool orbitCamera = false;
     bool showOrbits = true;
     bool proceduralTexture = false;
-    bool normalMapping = true;
+    bool normalMapping = false;
     int numPlanet = 9;
 };
 

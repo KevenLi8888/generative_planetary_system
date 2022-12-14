@@ -164,10 +164,7 @@ void Renderer::updateScene(int width, int height) {
     clearTextureData();
     updateGeometry();
     generateTextures();
-
-    // Normal Mapping
-    if (settings.normalMapping)
-        generateNormalMap();
+    generateNormalMap();
 
     m_ready = true;
 }

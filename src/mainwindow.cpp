@@ -184,6 +184,10 @@ void MainWindow::initialize() {
     proceduralTexture->setText(QStringLiteral("Use Procedural Texture"));
     proceduralTexture->setChecked(false);
 
+    normalMapping = new QCheckBox();
+    normalMapping->setText(QStringLiteral("Enable Normal Mapping"));
+    normalMapping->setChecked(false);
+
     QGroupBox *g1Layout = new QGroupBox();
     QHBoxLayout *g1 = new QHBoxLayout();
 
@@ -210,6 +214,7 @@ void MainWindow::initialize() {
     vLayout->addWidget(GPS_features_label);
     vLayout->addWidget(showOrbits);
     vLayout->addWidget(proceduralTexture);
+    vLayout->addWidget(normalMapping);
     vLayout->addWidget(GPS_params_label);
     vLayout->addWidget(num_planet_label);
     vLayout->addWidget(g1Layout);
@@ -301,6 +306,7 @@ void MainWindow::connectGPS() {
     connect(showOrbits, &QCheckBox::clicked, this, &MainWindow::onShowOrbits);
     connect(orbitCamera, &QCheckBox::clicked, this, &MainWindow::onOrbitCamera);
     connect(proceduralTexture, &QCheckBox::clicked, this, &MainWindow::onProceduralTexture);
+    connect(normalMapping, &QCheckBox::clicked, this, &MainWindow::onNormalMapping);
 }
 
 void MainWindow::onValChangeP1(int newValue) {
@@ -395,6 +401,10 @@ void MainWindow::onOrbitCamera() {
 
 void MainWindow::onProceduralTexture() {
     settings.proceduralTexture = !settings.proceduralTexture;
+}
+
+void MainWindow::onNormalMapping() {
+    settings.normalMapping = !settings.normalMapping;
 }
 
 void MainWindow::onValChangeG1(int newValue) {

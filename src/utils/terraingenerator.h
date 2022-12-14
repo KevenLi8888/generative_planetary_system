@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "glm/glm.hpp"
+#include <map>
 #include <iostream>
 
 
@@ -12,7 +13,7 @@ public:
     ~TerrainGenerator();
     int getResolution() { return m_resolution; };
     std::vector<float>& generateTerrainNormals();
-    std::vector<float>& generateTerrainColors();
+    std::vector<float>& generateTerrainColors(int type);
     std::vector<float>& generateTerrainDisplacement();
 
 private:
@@ -22,6 +23,8 @@ private:
     std::vector<float> normals;
     std::vector<float> colors;
     std::vector<float> displacement;
+    std::map<int, std::vector<glm::vec3>> planet_color_palette;
+
 
     // Samples the (infinite) random vector grid at (row, col)
     glm::vec2 sampleRandomVector(int row, int col);
@@ -38,10 +41,15 @@ private:
     glm::vec3 getNormal(int row, int col);
 
     // Computes color of vertex using normal and, optionally, position
-    glm::vec3 getColor(glm::vec3 normal, glm::vec3 position);
+    glm::vec3 getColorFromPerlin(glm::vec3 position, int type);
 
     // Computes the intensity of Perlin noise at some point
     float computePerlin(float x, float y);
+
+    glm::vec3 getColorForRing(int x, int y, int type);
+
+    // Quadratic, 1-d (input x and y separately)
+    float getBezierCurve(float p0, float p1, float p2, float t);
 };
 
 

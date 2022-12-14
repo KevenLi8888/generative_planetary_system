@@ -268,6 +268,7 @@ void Realtime::paintScene() {
 
     auto m_view = camera.getViewMatrix();
     auto m_proj = camera.getProjectionMatrix();
+    int shape_count = 0;
 
     for (auto& shape: metaData.shapes) {
         Primitive* current_shape;
@@ -284,8 +285,17 @@ void Realtime::paintScene() {
 
         // Texture Mapping - Project 6 Extra Credit
         auto blend = (settings.extraCredit3) ? shape.primitive.material.blend : 0;
-        auto m_texture = (settings.extraCredit3 and shape.primitive.material.textureMap.isUsed) ?
-                scene_textures.at(shape.primitive.material.textureMap.filename) : 0;
+        auto m_texture = 0;
+        if (!settings.proceduralTerrain) {
+            m_texture = (settings.extraCredit3 and shape.primitive.material.textureMap.isUsed) ?
+                             scene_textures.at(shape.primitive.material.textureMap.filename) : 0;
+        }
+        else {
+            m_texture = (settings.extraCredit3 and shape.primitive.material.textureMap.isUsed) ?
+                             scene_textures.at(std::to_string(shape_count % planet_type_count)) : 0;
+//            m_texture = scene_textures.at(std::to_string(shape_count % planet_type_count + 1));
+            shape_count ++;
+        }
         auto texture_sampler_pos = glGetUniformLocation(m_shader, "texture_sampler");
         glUniform1i(texture_sampler_pos, 0);
         auto blend_pos = glGetUniformLocation(m_shader, "blend");
@@ -731,23 +741,10 @@ void Realtime::loadTextures() {
         glDeleteTextures(1, &texture.second);
     }
     scene_textures.clear();
-    for (auto& shape: metaData.shapes) {
-        if (shape.primitive.material.textureMap.isUsed and !scene_textures.contains(shape.primitive.material.textureMap.filename)) {
-            if (settings.proceduralTerrain) {
-                auto& color = m_terrain.generateTerrainColors();
-                auto resolution = m_terrain.getResolution();
-                glGenTextures(1, &m_color_map);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, m_color_map);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-                             resolution, resolution, 0,
-                             GL_RGBA, GL_FLOAT, color.data());
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                scene_textures.emplace(shape.primitive.material.textureMap.filename, m_color_map);
-                glBindTexture(GL_TEXTURE_2D, 0);
-            }
-            else {
+    // read texture from scenefile
+    if (!settings.proceduralTerrain) {
+        for (auto& shape: metaData.shapes) {
+            if (shape.primitive.material.textureMap.isUsed and !scene_textures.contains(shape.primitive.material.textureMap.filename)) {
                 auto image = loadImageFromFile(shape.primitive.material.textureMap.filename);
                 GLuint texture;
                 glGenTextures(1, &texture);
@@ -761,6 +758,24 @@ void Realtime::loadTextures() {
                 scene_textures.emplace(shape.primitive.material.textureMap.filename, texture);
                 glBindTexture(GL_TEXTURE_2D, 0);
             }
+        }
+    }
+    // procedurally generate texture
+    else {
+        for (int i = 0; i < planet_type_count; ++i) {
+            auto color = m_terrain.generateTerrainColors(i);
+            auto resolution = m_terrain.getResolution();
+            GLuint color_map;
+            glGenTextures(1, &color_map);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, color_map);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                         resolution * 2, resolution, 0,
+                         GL_RGBA, GL_FLOAT, color.data());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            scene_textures.emplace(std::to_string(i), color_map);
+            glBindTexture(GL_TEXTURE_2D, 0);
         }
     }
 }

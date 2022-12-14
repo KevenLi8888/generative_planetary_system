@@ -18,7 +18,7 @@ struct Settings {
     bool extraCredit3 = false;
     bool extraCredit4 = false;
     // TODO: remove the hard coded boolean
-    bool normalMapping = true;
+    bool normalMapping = false;
     bool proceduralTerrain = true;
 };
 

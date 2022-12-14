@@ -126,6 +126,7 @@ private:
 
     // Final Project
     GLuint m_normal_map;
-    GLuint m_color_map;
+//    GLuint m_color_map;
     TerrainGenerator m_terrain;
+    int planet_type_count = 10;
 };

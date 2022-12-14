@@ -24,6 +24,9 @@ public:
         bool extraCredit3;
         bool extraCredit4;
         bool extraCredit5;
+
+        // Final project
+        bool orbitCamera;
     };
 public:
     Realtime(QWidget *parent = nullptr);

@@ -17,6 +17,7 @@ struct Settings {
     bool extraCredit4 = false;
     bool extraCredit5 = false;
     bool GPS = false;
+    bool orbitCamera = false;
 };
 
 

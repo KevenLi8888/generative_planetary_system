@@ -30,6 +30,9 @@ void MainWindow::initialize() {
     QLabel *GPS_label = new QLabel(); // Final Project label
     GPS_label->setText("Generative Planetary Systems");
     GPS_label->setFont(section_font);
+    QLabel *GPS_features_label = new QLabel();
+    GPS_features_label->setText("Features");
+    GPS_features_label->setFont(font);
     QLabel *realtime_label = new QLabel(); // Realtime Project label
     realtime_label->setText("Realtime Engine");
     realtime_label->setFont(section_font);
@@ -174,8 +177,14 @@ void MainWindow::initialize() {
     GPS->setText(QStringLiteral("Enable"));
     GPS->setChecked(false);
 
+    orbitCamera = new QCheckBox();
+    orbitCamera->setText(QStringLiteral("Use Orbit Camera"));
+    orbitCamera->setChecked(false);
+
     vLayout->addWidget(GPS_label);
     vLayout->addWidget(GPS);
+    vLayout->addWidget(GPS_features_label);
+    vLayout->addWidget(orbitCamera);
     vLayout->addWidget(realtime_label);
     vLayout->addWidget(uploadFile);
     vLayout->addWidget(tesselation_label);
@@ -273,6 +282,7 @@ void MainWindow::connectExtraCredit() {
 
 void MainWindow::connectGPS() {
     connect(GPS, &QCheckBox::clicked, this, &MainWindow::onGPS);
+    connect(orbitCamera, &QCheckBox::clicked, this, &MainWindow::onOrbitCamera);
 }
 
 void MainWindow::onPerPixelFilter() {
@@ -373,4 +383,9 @@ void MainWindow::onExtraCredit5() {
 void MainWindow::onGPS() {
     settings.GPS = !settings.GPS;
     realtime->sceneChanged();
+}
+
+void MainWindow::onOrbitCamera() {
+    settings.orbitCamera = !settings.orbitCamera;
+    realtime->settingsChanged();
 }

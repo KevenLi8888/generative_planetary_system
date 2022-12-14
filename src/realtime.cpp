@@ -57,6 +57,7 @@ void Realtime::resetConfig() {
         settings.extraCredit3,
         settings.extraCredit4,
         settings.extraCredit5,
+        settings.orbitCamera,
     };
 }
 
@@ -224,10 +225,12 @@ void Realtime::settingsChanged() {
                             settings.farPlane != m_config.farPlane;
     bool needUpdateGeometry = settings.shapeParameter1 != m_config.shapeParameter1 ||
                               settings.shapeParameter2 != m_config.shapeParameter2;
+    bool needReplaceCamera = settings.orbitCamera != m_config.orbitCamera;
 
     // Update if necessary
     if (needUpdateCamera) m_renderer.updateCamera(size().width(), size().height());
     if (needUpdateGeometry) m_renderer.updateGeometry();
+    if (needReplaceCamera) m_renderer.replaceCamera(size().width(), size().height());
 
     resetConfig();
     update(); // asks for a PaintGL() call to occur
@@ -265,7 +268,7 @@ void Realtime::mouseMoveEvent(QMouseEvent *event) {
         m_prev_mouse_pos = glm::vec2(posX, posY);
 
         // Use deltaX and deltaY here to rotate
-        if (m_mouseDown) m_renderer.rotateCamera(deltaX/120.0, deltaY/120.0);
+        m_renderer.rotateCamera(deltaX/120.0, deltaY/120.0);
 
         update(); // asks for a PaintGL() call to occur
     }
@@ -278,6 +281,7 @@ void Realtime::timerEvent(QTimerEvent *event) {
 
     // Use deltaTime and m_keyMap here to move around
     m_renderer.moveCamera(m_keyMap, deltaTime * 5);
+    m_renderer.switchCamera(m_keyMap, deltaTime);
 
     // Final Project
     if (settings.GPS) {

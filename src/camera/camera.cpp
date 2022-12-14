@@ -1,5 +1,6 @@
 #include "camera/camera.h"
 #include "settings.h"
+#include <iostream>
 
 Camera::Camera(int width, int height, SceneCameraData data) {
     m_look = glm::normalize(data.look);
@@ -21,17 +22,32 @@ void Camera::resize(int width, int height) {
 }
 
 // Update the camera according to keyboard input
-void Camera::moveCamera(std::unordered_map<Qt::Key, bool> &key_map, float dist) {
-    auto left = glm::cross(m_up, m_look);
+void Camera::moveCamera(std::unordered_map<Qt::Key, bool> &key_map, float dist) {    
+    if (settings.GPS && settings.orbitCamera) {
+        auto prev_dist = m_distance;
 
-    if (key_map[Qt::Key_W]) m_pos += dist * m_look;
-    if (key_map[Qt::Key_S]) m_pos -= dist * m_look;
-    if (key_map[Qt::Key_A]) m_pos += dist * left;
-    if (key_map[Qt::Key_D]) m_pos -= dist * left;
-    if (key_map[Qt::Key_Space]) m_pos += dist * glm::vec3(0, 1, 0);
-    if (key_map[Qt::Key_Control]) m_pos += dist * glm::vec3(0, -1, 0);
+        if (key_map[Qt::Key_W]) m_distance -= dist;
+        if (key_map[Qt::Key_S]) m_distance += dist;
 
-    updateView();
+        m_distance = std::max(m_distance, 0.f);
+
+        if (m_distance != prev_dist) {
+            updatePlanetLPU();
+            updateView();
+        }
+    } else {
+        auto prev_pos = m_pos;
+        auto left = glm::cross(m_up, m_look);
+
+        if (key_map[Qt::Key_W]) m_pos += dist * m_look;
+        if (key_map[Qt::Key_S]) m_pos -= dist * m_look;
+        if (key_map[Qt::Key_A]) m_pos += dist * left;
+        if (key_map[Qt::Key_D]) m_pos -= dist * left;
+        if (key_map[Qt::Key_Space]) m_pos += dist * glm::vec3(0, 1, 0);
+        if (key_map[Qt::Key_Control]) m_pos += dist * glm::vec3(0, -1, 0);
+
+        if (m_pos != prev_pos) updateView();
+    }
 }
 
 // v: vector to rotate, u: normalized axis, theta: angle in radians
@@ -48,8 +64,15 @@ inline glm::vec3 rotate(glm::vec3 v, glm::vec3 u, float theta) {
 
 // Update the camera according to mouse input
 void Camera::rotateCamera(float dx, float dy) {
-    m_look = rotate(m_look, glm::vec3(0, 1, 0), -dx);
-    m_look = rotate(m_look, glm::normalize(glm::cross(m_look, m_up)), -dy);
+    if (settings.GPS && settings.orbitCamera) {
+        m_theta = std::fmod(m_theta - dx, 2 * glm::pi<float>());
+        m_phi = std::min(std::max(m_phi + dy, 0.001f), glm::pi<float>() - 0.001f);
+
+        updatePlanetLPU();
+    } else {
+        m_look = rotate(m_look, glm::vec3(0, 1, 0), -dx);
+        m_look = rotate(m_look, glm::normalize(glm::cross(m_look, m_up)), -dy);
+    }
     updateView();
 }
 
@@ -103,4 +126,34 @@ void Camera::updateProjection() {
 
     // Putting them together
     m_proj = Rz * Mpp * Sxyz;
+}
+
+void Camera::resetCameraOrbit() {
+    m_distance = DEFAULT_DISTANCE;
+    m_theta = DEFAULT_THETA;
+    m_phi = DEFAULT_PHI;
+
+    m_look_planet = DEFAULT_LOOK_PLANET;
+    m_pos_planet = DEFAULT_POS_PLANET;
+    m_up_planet = DEFAULT_UP_PLANET;
+
+    updatePlanetLPU();
+}
+
+void Camera::updatePlanetLPU() {
+    // Compute look vector in the planet object space
+    m_look_planet = -DEFAULT_LOOK_PLANET;
+    m_look_planet = rotate(m_look_planet, DEFAULT_UP_PLANET, m_theta);
+    m_look_planet = rotate(m_look_planet, glm::normalize(glm::cross(m_look_planet, DEFAULT_UP_PLANET)), m_phi - DEFAULT_PHI);
+    m_look_planet = -glm::normalize(m_look_planet);
+
+    // Compute pos vector in the planet object space
+    m_pos_planet = -m_look_planet * m_distance;
+}
+
+void Camera::updateCameraView(RenderShapeData *planet) {
+    m_look = planet->ctm * glm::vec4(m_look_planet, 0);
+    m_pos = planet->ctm * glm::vec4(m_pos_planet, 1);
+    m_up = planet->ctm * glm::vec4(m_up_planet, 0);
+    updateView();
 }

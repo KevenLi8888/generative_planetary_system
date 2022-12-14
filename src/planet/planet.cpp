@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-glm::mat4 getOrientMat(glm::vec3 axis) {
+glm::mat4 computeOrientMat(glm::vec3 axis) {
     if (axis == glm::vec3(0, 1, 0)) return glm::mat4(1);
     auto new_y = glm::normalize(axis);
     auto new_z = glm::normalize(glm::cross(new_y, glm::vec3(0, 1, 0)));
@@ -35,7 +35,7 @@ Planet::Planet(float diameter,
     m_shape = shape;
 
     m_scale_mat = glm::scale(glm::vec3(diameter));
-    m_orient_mat = getOrientMat(orbit_axis);
+    m_orient_mat = computeOrientMat(orbit_axis);
 }
 
 void Planet::setParent(Planet *p) {
@@ -47,17 +47,19 @@ void Planet::updateCTMHelper(float deltaTheta, glm::vec3 parent_pos) {
     m_orbit_theta += std::fmod(deltaTheta * m_orbit_v, 2 * glm::pi<float>());
 
     glm::vec3 curr_pos = parent_pos;
-    glm::mat4 revolve_mat(1);
+    m_revolve_mat = glm::mat4(1);
 
     if (m_parent != nullptr) {
         m_revolve_theta += std::fmod(deltaTheta * m_revolve_v, 2 * glm::pi<float>());
-        revolve_mat = glm::rotate(glm::mat4(1), m_revolve_theta, m_orbit_axis);
+        m_revolve_mat = glm::rotate(glm::mat4(1), m_revolve_theta, m_orbit_axis);
 
         auto orbit_mat = glm::rotate(glm::mat4(1), m_orbit_theta, m_orbit_axis);
-        curr_pos += glm::vec3(glm::normalize(m_orbit_start * orbit_mat) * m_orbit_radius);
+        curr_pos += glm::vec3(m_orbit_start * orbit_mat * m_orbit_radius);
     }
 
-    m_shape->ctm = glm::translate(curr_pos) * m_scale_mat * revolve_mat * m_orient_mat;
+    m_translate_mat = glm::translate(curr_pos);
+
+    m_shape->ctm = m_translate_mat * m_scale_mat * m_revolve_mat * m_orient_mat;
 
     for (auto &p : m_children) {
         p->updateCTMHelper(deltaTheta, curr_pos);

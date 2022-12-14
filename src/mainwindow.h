@@ -50,6 +50,7 @@ private:
 
     // Final Project
     QCheckBox *GPS;
+    QCheckBox *orbitCamera;
 
 private slots:
     void onPerPixelFilter();
@@ -71,4 +72,5 @@ private slots:
 
     // Final Project
     void onGPS();
+    void onOrbitCamera();
 };

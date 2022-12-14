@@ -1,9 +1,11 @@
 #include "renderer/renderer.h"
+#include "utils/shaderloader.h"
 #include "utils/sceneparser.h"
 #include "shape/sphere.h"
 #include "shape/cube.h"
 #include "shape/cone.h"
 #include "shape/cylinder.h"
+#include "shape/ring.h"
 #include "settings.h"
 
 #include <iostream>
@@ -12,6 +14,7 @@
 // VAO configs
 std::vector<int> VAO_POS_NORM_UV_CONFIG { 3, 3, 2 };
 std::vector<int> VAO_POS_UV_CONFIG { 3, 2 };
+std::vector<int> VAO_POS_CONFIG { 3 };
 
 // Supported implicit shapes
 std::vector<PrimitiveType> IMPLICIT_SHAPES {
@@ -19,6 +22,7 @@ std::vector<PrimitiveType> IMPLICIT_SHAPES {
     PrimitiveType::PRIMITIVE_CUBE,
     PrimitiveType::PRIMITIVE_CONE,
     PrimitiveType::PRIMITIVE_CYLINDER,
+    PrimitiveType::PRIMITIVE_RING,
 };
 
 // Fullscreem Quad
@@ -43,63 +47,24 @@ std::vector<GLfloat> FULLSCREEN_QUAD_DATA =
 SceneGlobalData DEFAULT_GLOBAL = {
     0.5, 0.5, 0.5,  // ka, kd, ks
 };
+
 SceneCameraData DEFAULT_CAMERA = {
-    glm::vec4(6, 3, 6, 1),    // pos
+    glm::vec4(6, 3, 6, 1),      // pos
     glm::vec4(-3, -1.5, -3, 0), // look
     glm::vec4(0, 1, 0, 0),      // up
     glm::radians(30.0),         // heightAngle
 };
+
 std::vector<SceneLightData> DEFAULT_LIGHTS {
     SceneLightData {
-        0,                              // id
-        LightType::LIGHT_DIRECTIONAL,   // type
-        glm::vec4(1, 1, 1, 1),          // color
-        glm::vec3(1, 0, 0),             // function
-        glm::vec4(0, 0, 0, 1),          // pos
-        glm::vec4(-1, 0, 0, 0)        // dir
-    },
-    SceneLightData {
-        0,                              // id
-        LightType::LIGHT_DIRECTIONAL,   // type
-        glm::vec4(1, 1, 1, 1),          // color
-        glm::vec3(1, 0, 0),             // function
-        glm::vec4(0, 0, 0, 1),          // pos
-        glm::vec4(1, 0, 0, 0)        // dir
-    },
-    SceneLightData {
-        0,                              // id
-        LightType::LIGHT_DIRECTIONAL,   // type
-        glm::vec4(1, 1, 1, 1),          // color
-        glm::vec3(1, 0, 0),             // function
-        glm::vec4(0, 0, 0, 1),          // pos
-        glm::vec4(0, 1, 0, 0)        // dir
-    },
-    SceneLightData {
-        0,                              // id
-        LightType::LIGHT_DIRECTIONAL,   // type
-        glm::vec4(1, 1, 1, 1),          // color
-        glm::vec3(1, 0, 0),             // function
-        glm::vec4(0, 0, 0, 1),          // pos
-        glm::vec4(0, -1, 0, 0)        // dir
-    },
-    SceneLightData {
-        0,                              // id
-        LightType::LIGHT_DIRECTIONAL,   // type
-        glm::vec4(1, 1, 1, 1),          // color
-        glm::vec3(1, 0, 0),             // function
-        glm::vec4(0, 0, 0, 1),          // pos
-        glm::vec4(0, 0, 1, 0)        // dir
-    },
-    SceneLightData {
-        0,                              // id
-        LightType::LIGHT_DIRECTIONAL,   // type
-        glm::vec4(1, 1, 1, 1),          // color
-        glm::vec3(1, 0, 0),             // function
-        glm::vec4(0, 0, 0, 1),          // pos
-        glm::vec4(0, 0, -1, 0)        // dir
-    },
+        0,
+        LightType::LIGHT_POINT,
+        glm::vec4(1, 1, 1, 1),
+        glm::vec3(1, 0, 0),
+        glm::vec4(0, 0, 0, 1),
+        glm::vec4(0)
+    }
 };
-
 
 void Renderer::initialize(int screen_w, int screen_h) {
     m_screen_width = screen_w;
@@ -108,6 +73,17 @@ void Renderer::initialize(int screen_w, int screen_h) {
     // Initialize the fullscreen quad mesh to project on and the FBO
     m_fullscreen_mesh = bindMesh(FULLSCREEN_QUAD_DATA, VAO_POS_UV_CONFIG);
     generateFBO();
+
+    // Final Project
+    m_line_shader = ShaderLoader::createShaderProgram(
+                "resources/shaders/line.vert",
+                "resources/shaders/line.frag"
+    );
+
+    m_planet_shader = ShaderLoader::createShaderProgram(
+                "resources/shaders/phong.vert",
+                "resources/shaders/planet.frag"
+    );
 }
 
 Renderer::~Renderer() {
@@ -166,8 +142,15 @@ void Renderer::updateScene(int width, int height) {
             DEFAULT_GLOBAL,
             DEFAULT_CAMERA,
             DEFAULT_LIGHTS,
-            m_ps.generateSystem()
+//            m_ps.generateSystem()
+            m_ps.generateSolarSystem()
         };
+        m_camera_at = 0;
+    } else if (!settings.GPS && settings.sceneFilePath.empty()) {
+        clearGeometryData();
+        clearTextureData();
+        m_data = new_data;
+        return;
     } else if (!SceneParser::parse(settings.sceneFilePath, new_data)) {
         std::cout << "Failed to parse scene file: " + settings.sceneFilePath << std::endl;
         return;
@@ -178,6 +161,7 @@ void Renderer::updateScene(int width, int height) {
 
     m_data = new_data;
     m_camera = Camera(width, height, m_data.cameraData);
+    if (settings.GPS) m_camera.resetCameraOrbit();
     updateGeometry();
     generateTextures();
 }
@@ -204,7 +188,6 @@ void Renderer::generateTextures() {
     for (auto &shape: m_data.shapes) {
         if (shape->primitive.material.textureMap.isUsed) {
             auto fpath = shape->primitive.material.textureMap.filename;
-            std::cout << fpath << std::endl;
             if (m_texture_map.find(fpath) == m_texture_map.end()) {
                 auto img = QImage(fpath.data()).convertToFormat(QImage::Format_RGBA8888).mirrored();
                 GLuint texture;
@@ -227,21 +210,22 @@ MeshData Renderer::createMesh(PrimitiveType t, int param1, int param2) {
     switch (t) {
         case PrimitiveType::PRIMITIVE_SPHERE:
             mesh = Sphere::generateShape(param1, param2);
-            break;
+            return bindMesh(mesh, VAO_POS_NORM_UV_CONFIG);
         case PrimitiveType::PRIMITIVE_CUBE:
             mesh = Cube::generateShape(param1, param2);
-            break;
+            return bindMesh(mesh, VAO_POS_NORM_UV_CONFIG);
         case PrimitiveType::PRIMITIVE_CONE:
             mesh = Cone::generateShape(param1, param2);
-            break;
+            return bindMesh(mesh, VAO_POS_NORM_UV_CONFIG);
         case PrimitiveType::PRIMITIVE_CYLINDER:
             mesh = Cylinder::generateShape(param1, param2);
-            break;
+            return bindMesh(mesh, VAO_POS_NORM_UV_CONFIG);
+        case PrimitiveType::PRIMITIVE_RING:
+            mesh = Ring::generateShape(param1, param2);
+            return bindMesh(mesh, VAO_POS_CONFIG);
         default:
             throw std::runtime_error("Shape not supported.");
     }
-
-    return bindMesh(mesh, VAO_POS_NORM_UV_CONFIG);
 }
 
 // Allocate and bind VAO and VBO given the mesh data
@@ -308,7 +292,13 @@ void Renderer::renderGeometry(GLuint shader) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Activate the shader program by calling glUseProgram
-    glUseProgram(shader);
+    if (settings.GPS && settings.extraCredit5) glUseProgram(m_planet_shader);
+    else glUseProgram(shader);
+
+    // Final Project
+    if (settings.GPS && settings.orbitCamera) {
+        m_camera.updateCameraView(m_data.shapes[m_camera_at]);
+    }
 
     // Pass in camera related information as uniforms to the shader program
     auto view = m_camera.getViewMatrix();
@@ -382,6 +372,28 @@ void Renderer::renderGeometry(GLuint shader) {
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
     }
+
+    if (settings.GPS) {
+        glUseProgram(m_line_shader);
+
+        for (auto &orbit_ctm: m_ps.getOrbitCtms()) {
+            MeshData mesh = m_meshMap[PrimitiveType::PRIMITIVE_RING];
+
+            // Pass in the mvp matrix
+            auto mvp = proj_view * orbit_ctm;
+            glUniformMatrix4fv(glGetUniformLocation(m_line_shader, "mvp"), 1, GL_FALSE, &mvp[0][0]);
+
+            // Bind shape mesh
+            glBindVertexArray(mesh.vao);
+
+            // Draw orbit ring
+            glDrawArrays(GL_LINE_STRIP, 0, mesh.size);
+
+            // Unbind Everything
+            glBindVertexArray(0);
+        }
+    }
+
     // Deactivate the shader program
     glUseProgram(0);
 }
@@ -433,5 +445,32 @@ void Renderer::clearTextureData() {
 void Renderer::clearSceneData() {
     for (auto &it: m_data.shapes) {
         delete it;
+    }
+}
+
+// Final Project
+void Renderer::switchCamera(std::unordered_map<Qt::Key, bool> &key_map, float time) {
+    m_last_switch += time;
+    if (m_last_switch > 0.3) {
+        auto prev_camera_at = m_camera_at;
+        if (key_map[Qt::Key_A]) m_camera_at -= 1;
+        if (key_map[Qt::Key_D]) m_camera_at += 1;
+
+        if (m_camera_at < 0) m_camera_at = m_data.shapes.size()-1;
+        else if (m_camera_at >= m_data.shapes.size()) m_camera_at = 0;
+
+        if (m_camera_at != prev_camera_at) {
+            m_camera.resetCameraOrbit();
+            m_last_switch = 0;
+        }
+    }
+}
+
+void Renderer::replaceCamera(int width, int height) {
+    if (settings.orbitCamera) {
+        m_camera.resetCameraOrbit();
+        m_camera_at = 0;
+    } else {
+        m_camera = Camera(width, height, m_data.cameraData);
     }
 }

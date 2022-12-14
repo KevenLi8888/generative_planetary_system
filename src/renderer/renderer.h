@@ -41,6 +41,10 @@ public:
     void clearSceneData();
     void clearFBO();
 
+    // Final Project
+    void switchCamera(std::unordered_map<Qt::Key, bool> &key_map, float time);
+    void replaceCamera(int width, int height);
+
 private:
     int m_screen_width;
     int m_screen_height;
@@ -68,4 +72,9 @@ private:
 
    // Final Project
    PlanetarySystem m_ps;
+   int m_camera_at;
+   float m_last_switch;
+
+   GLuint m_planet_shader;
+   GLuint m_line_shader;
 };

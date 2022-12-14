@@ -1,5 +1,6 @@
 #pragma once
 
+#include "glm/gtc/constants.hpp"
 #include "utils/scenedata.h"
 
 #include <glm/glm.hpp>
@@ -29,6 +30,11 @@ public:
     // Returns the current camera position
     glm::vec4 getPosition() const { return glm::vec4(m_pos, 1); };
 
+    // Final Project
+    void resetCameraOrbit();
+
+    void updateCameraView(RenderShapeData *planet);
+
 private:
     glm::vec3 m_look;
     glm::vec3 m_pos;
@@ -42,4 +48,21 @@ private:
 
     void updateView();
     void updateProjection();
+
+    // Final Project
+    float m_distance;
+    float m_theta;
+    float m_phi;
+    glm::vec3 m_look_planet;
+    glm::vec3 m_pos_planet;
+    glm::vec3 m_up_planet;
+
+    void updatePlanetLPU();
+
+    float DEFAULT_DISTANCE = 3;
+    float DEFAULT_THETA = 0;
+    float DEFAULT_PHI = glm::half_pi<float>();
+    glm::vec3 DEFAULT_LOOK_PLANET = glm::vec3(-1, 0, 0);
+    glm::vec3 DEFAULT_POS_PLANET = glm::vec3(1, 0, 0);
+    glm::vec3 DEFAULT_UP_PLANET = glm::vec3(0, 1, 0);
 };

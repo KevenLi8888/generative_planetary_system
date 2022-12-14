@@ -567,7 +567,7 @@ void Renderer::replaceCamera(int width, int height) {
 }
 
 void Renderer::generateNormalMap() {
-    auto normal_map_file_path = std::string("/Users/kevenli/Downloads/2604-normal.jpg");
+    auto normal_map_file_path = std::string("resources/images/planet_normal.jpg");
     auto image = QImage(normal_map_file_path.data()).convertToFormat(QImage::Format_RGBA8888).mirrored();
 //    auto& normal = m_terrain.generateTerrainNormals();
 //    auto resolution = m_terrain.getResolution();

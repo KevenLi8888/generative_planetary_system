@@ -300,7 +300,7 @@ void Realtime::timerEvent(QTimerEvent *event) {
     m_elapsedTimer.restart();
 
     // Use deltaTime and m_keyMap here to move around
-    m_renderer.moveCamera(m_keyMap, deltaTime * 5);
+    m_renderer.moveCamera(m_keyMap, deltaTime * 10);
     m_renderer.switchCamera(m_keyMap, deltaTime);
 
     // Update planet positions

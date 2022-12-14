@@ -15,6 +15,7 @@
 struct MeshData {
     GLuint vao;
     GLuint vbo;
+    GLuint vbo_tangent;
     GLsizei size;
 };
 
@@ -82,4 +83,7 @@ private:
 
    GLuint m_planet_shader;
    GLuint m_line_shader;
+   GLuint m_normal_map;
+   void generateNormalMap();
+   std::vector<float> computeTangents(std::vector<float> &mesh);
 };

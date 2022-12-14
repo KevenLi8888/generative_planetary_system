@@ -41,6 +41,7 @@ void Realtime::finish() {
     glDeleteProgram(m_boxblur_shader);
     glDeleteProgram(m_emboss_shader);
     glDeleteProgram(m_planet_shader);
+    glDeleteProgram(m_normal_map_shader);
 
     // Renderer recycles its own resource in its destructor
     this->doneCurrent();
@@ -128,6 +129,11 @@ void Realtime::initializeGL() {
                 "resources/shaders/planet.frag"
     );
 
+    m_normal_map_shader = ShaderLoader::createShaderProgram(
+            "resources/shaders/normalmap.vert",
+            "resources/shaders/normalmap.frag"
+    );
+
     configurePixelShaders();
 
     int screen_w = size().width() * m_devicePixelRatio;
@@ -157,6 +163,9 @@ void Realtime::configurePixelShaders() {
     glUseProgram(m_planet_shader);
     glUniform1i(glGetUniformLocation(m_planet_shader, "tex"), 0);
 
+    glUseProgram(m_normal_map_shader);
+    glUniform1i(glGetUniformLocation(m_planet_shader, "tex"), 0);
+
     glUseProgram(0);
 }
 
@@ -183,20 +192,26 @@ void Realtime::configureKernelShaders(int w, int h) {
 }
 
 void Realtime::paintGL() {
-    if (settings.filter1)
-        m_renderer.render(m_planet_shader, m_invert_shader);
-    else if (settings.filter2)
-        m_renderer.render(m_planet_shader, m_chromatic_shader);
-    else if (settings.filter3)
-        m_renderer.render(m_planet_shader, m_grayscale_shader);
-    else if (settings.filter4)
-        m_renderer.render(m_planet_shader, m_boxblur_shader);
-    else if (settings.filter5)
-        m_renderer.render(m_planet_shader, m_sharpen_shader);
-    else if (settings.filter6)
-        m_renderer.render(m_planet_shader, m_emboss_shader);
+    GLuint phong_shader;
+    if (settings.normalMapping)
+        phong_shader = m_normal_map_shader;
     else
-        m_renderer.render(m_planet_shader, m_texture_shader);
+        phong_shader = m_planet_shader;
+
+    if (settings.filter1)
+        m_renderer.render(phong_shader, m_invert_shader);
+    else if (settings.filter2)
+        m_renderer.render(phong_shader, m_chromatic_shader);
+    else if (settings.filter3)
+        m_renderer.render(phong_shader, m_grayscale_shader);
+    else if (settings.filter4)
+        m_renderer.render(phong_shader, m_boxblur_shader);
+    else if (settings.filter5)
+        m_renderer.render(phong_shader, m_sharpen_shader);
+    else if (settings.filter6)
+        m_renderer.render(phong_shader, m_emboss_shader);
+    else
+        m_renderer.render(phong_shader, m_texture_shader);
 }
 
 void Realtime::resizeGL(int w, int h) {

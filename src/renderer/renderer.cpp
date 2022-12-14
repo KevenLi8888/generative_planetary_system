@@ -11,6 +11,7 @@
 #include <numeric>
 
 // VAO configs
+//std::vector<int> VAO_POS_NORM_UV_TANGENTS_CONFIG { 3, 3, 2, 3, 3 };
 std::vector<int> VAO_POS_NORM_UV_CONFIG { 3, 3, 2 };
 std::vector<int> VAO_POS_UV_CONFIG { 3, 2 };
 std::vector<int> VAO_POS_CONFIG { 3 };
@@ -152,6 +153,10 @@ void Renderer::updateScene(int width, int height) {
     updateGeometry();
     generateTextures();
 
+    // Normal Mapping
+    if (settings.normalMapping)
+        generateNormalMap();
+
     m_ready = true;
 }
 
@@ -266,11 +271,26 @@ MeshData Renderer::bindMesh(std::vector<float> &mesh, std::vector<int> &config) 
         start += config[i];
     }
 
+    GLuint vbo_tangent = 0;
+    if (settings.normalMapping) {
+        // Normal Mapping - Tangents
+        // VBO
+        glGenBuffers(1, &vbo_tangent);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_tangent);
+        auto mesh_tangents = computeTangents(mesh);
+        glBufferData(GL_ARRAY_BUFFER, mesh_tangents.size() * sizeof(GLfloat), mesh_tangents.data(), GL_STATIC_DRAW);
+        // VAO
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void *>(sizeof(GLfloat) * 3));
+    }
+
     // Clean-up bindings
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER,0);
 
-    return MeshData { vao, vbo, (GLsizei)(mesh.size()/stride) };
+    return MeshData { vao, vbo, vbo_tangent, (GLsizei)(mesh.size()/stride) };
 }
 
 // Proxy the camera resize/movement calls to the camera class
@@ -374,6 +394,14 @@ void Renderer::renderGeometry(GLuint shader) {
             }
         }
 
+        // Normal Mapping
+        if (settings.normalMapping) {
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, m_normal_map);
+            glUniform1i(glGetUniformLocation(shader, "enable_normal_mapping"), settings.normalMapping);
+            glUniform1i(glGetUniformLocation(shader, "normal_map"), 1);
+        }
+
         // Draw shape
         glDrawArrays(GL_TRIANGLES, 0, mesh.size);
 
@@ -438,6 +466,7 @@ void Renderer::clearGeometryData() {
     // Recycle all geometry VAOs and VBOs
     for (auto &it: m_meshMap) {
         glDeleteBuffers(1, &it.second.vbo);
+        glDeleteBuffers(1, &it.second.vbo_tangent);
         glDeleteVertexArrays(1, &it.second.vao);
     }
     m_meshMap.clear();
@@ -448,6 +477,7 @@ void Renderer::clearTextureData() {
     for (auto &it: m_texture_map) {
         glDeleteTextures(1, &it.second);
     }
+    glDeleteTextures(1, &m_normal_map);
     m_texture_map.clear();
 }
 
@@ -481,4 +511,55 @@ void Renderer::replaceCamera(int width, int height) {
         m_camera.resetCameraOrbit();
         m_camera_at = 0;
     }
+}
+
+void Renderer::generateNormalMap() {
+    auto normal_map_file_path = std::string("/Users/kevenli/Downloads/2604-normal.jpg");
+    auto image = QImage(normal_map_file_path.data()).convertToFormat(QImage::Format_RGBA8888).mirrored();
+//    auto& normal = m_terrain.generateTerrainNormals();
+//    auto resolution = m_terrain.getResolution();
+    glGenTextures(1, &m_normal_map);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_normal_map);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                 image.width(), image.height(), 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+//                 resolution * 2, resolution, 0,
+//                 GL_RGBA, GL_FLOAT, normal.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+static void insertVec3(std::vector<float> &data, glm::vec3 v) {
+    data.push_back(v.x);
+    data.push_back(v.y);
+    data.push_back(v.z);
+};
+
+std::vector<float> Renderer::computeTangents(std::vector<float> &mesh) {
+    std::vector<float> vbo_tangent_data;
+    for (int i = 0; i < mesh.size()/8; i += 24) {
+        auto stride = 8;
+        auto v0 = glm::vec3(mesh[i], mesh[i+1], mesh[i+2]);
+        auto v1 = glm::vec3(mesh[i + stride], mesh[i+1 + stride], mesh[i+2 + stride]);
+        auto v2 = glm::vec3(mesh[i + stride*2], mesh[i+1 + stride*2], mesh[i+2 + stride*2]);
+        auto uv0 = glm::vec2(mesh[i+6], mesh[i+7]);
+        auto uv1 = glm::vec2(mesh[i+6 + stride], mesh[i+7 + stride]);
+        auto uv2 = glm::vec2(mesh[i+6 + stride*2], mesh[i+7 + stride*2]);
+        auto delta_pos_1 = v1 - v0;
+        auto delta_pos_2 = v2 - v0;
+        auto delta_uv_1 = uv1 - uv0;
+        auto delta_uv_2 = uv2 - uv0;
+        float r = 1.f / (delta_uv_1.x * delta_uv_2.y - delta_uv_1.y * delta_uv_2.x);
+        auto tangent = (delta_pos_1 * delta_uv_2.y - delta_pos_2 * delta_uv_1.y) * r;
+        auto bitangent = (delta_pos_2 * delta_uv_1.x - delta_pos_1 * delta_uv_2.x) * r;
+        // Set the same tangent/bitangent for all three vertices of the triangle.
+        for (int j = 0; j < 3; ++j) {
+            insertVec3(vbo_tangent_data, tangent);
+            insertVec3(vbo_tangent_data, bitangent);
+        }
+    }
+    return vbo_tangent_data;
 }

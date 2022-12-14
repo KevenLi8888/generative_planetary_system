@@ -74,6 +74,7 @@ private:
 
     // Final Project
     GLuint m_planet_shader;
+    GLuint m_normal_map_shader;
 
     void configurePixelShaders();
     void configureKernelShaders(int w, int h);

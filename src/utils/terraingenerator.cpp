@@ -86,9 +86,15 @@ void insertVec3(std::vector<float> &data, glm::vec3 v) {
 
 std::vector<float>& TerrainGenerator::generateTerrainNormals() {
     for (int x = 0; x < m_resolution; ++x) {
-        for(int y = 0; y < m_resolution; ++y) {
-            auto n = getNormal(x, y);
-            insertVec3(normals, n * 0.5f + 0.5f);
+        for(int y = 0; y < m_resolution * 2; ++y) {
+            if (y <= m_resolution - 1) {
+                auto n = getNormal(x, y);
+                insertVec3(normals, n * 0.5f + 0.5f);
+            }
+            else {
+                auto n = getNormal(x, ((m_resolution - 1) - y % (m_resolution)));
+                insertVec3(normals, n * 0.5f + 0.5f);
+            }
             normals.push_back(1.0);
         }
     }

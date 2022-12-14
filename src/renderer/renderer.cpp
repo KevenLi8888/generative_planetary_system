@@ -153,7 +153,7 @@ void Renderer::updateScene(int width, int height) {
         DEFAULT_GLOBAL,
         DEFAULT_CAMERA,
         DEFAULT_LIGHTS,
-        m_ps.generateSolarSystem()
+        settings.procedural ? m_ps.generateProceduralSystem() : m_ps.generateSolarSystem()
     };
 
     m_camera_at = 0;
@@ -191,7 +191,7 @@ void Renderer::updateGeometry() {
 
 // Creates a mapping between texture filename and GL Texture
 void Renderer::generateTextures() {
-    if (settings.proceduralTexture) {
+    if (!settings.procedural) {
         for (int i = 0; i < planet_type_count; ++i) {
             auto color = m_terrain.generateTerrainColors(i);
             auto resolution = m_terrain.getResolution();
@@ -219,6 +219,7 @@ void Renderer::generateTextures() {
             } else {
                 color = m_terrain.generateTerrainColors(PlanetType::PLANET_GAS);
             }
+
             auto resolution = m_terrain.getResolution();
             GLuint color_map;
             glGenTextures(1, &color_map);

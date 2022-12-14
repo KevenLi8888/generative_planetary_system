@@ -6,6 +6,12 @@
 #include <map>
 #include <iostream>
 
+enum PlanetType {
+    PLANET_SUN,
+    PLANET_MOON,
+    PLANET_ROCKY,
+    PLANET_GAS,
+};
 
 class TerrainGenerator {
 public:
@@ -14,6 +20,7 @@ public:
     int getResolution() { return m_resolution; };
     std::vector<float>& generateTerrainNormals();
     std::vector<float>& generateTerrainColors(int type);
+    std::vector<float>& generateTerrainColors(PlanetType type);
     std::vector<float>& generateTerrainDisplacement();
 
 private:
@@ -41,15 +48,18 @@ private:
     glm::vec3 getNormal(int row, int col);
 
     // Computes color of vertex using normal and, optionally, position
-    glm::vec3 getColorFromPerlin(glm::vec3 position, int type);
+    glm::vec3 getColorFromPerlin(glm::vec3 position, std::vector<glm::vec3> &palette);
 
     // Computes the intensity of Perlin noise at some point
     float computePerlin(float x, float y);
 
-    glm::vec3 getColorForRing(int x, int y, int type);
+    glm::vec3 getColorForRing(int x, int y, std::vector<glm::vec3> &palette);
 
     // Quadratic, 1-d (input x and y separately)
     float getBezierCurve(float p0, float p1, float p2, float t);
+
+    // Update the perlin noise map
+    void updateNoise();
 };
 
 

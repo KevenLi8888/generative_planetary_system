@@ -65,6 +65,19 @@ std::vector<SceneLightData> DEFAULT_LIGHTS {
     }
 };
 
+std::vector<std::string> DEFAULT_TEXTURES = {
+    "resources/images/sun.jpeg",
+    "resources/images/mercury.jpeg",
+    "resources/images/venus.jpeg",
+    "resources/images/earth.jpeg",
+    "resources/images/mars.jpeg",
+    "resources/images/jupiter.jpeg",
+    "resources/images/saturn.jpeg",
+    "resources/images/uranus.jpeg",
+    "resources/images/neptune.jpeg",
+    "resources/images/moon.jpeg",
+};
+
 void Renderer::initialize(int screen_w, int screen_h) {
     m_screen_width = screen_w;
     m_screen_height = screen_h;
@@ -140,7 +153,7 @@ void Renderer::updateScene(int width, int height) {
         DEFAULT_GLOBAL,
         DEFAULT_CAMERA,
         DEFAULT_LIGHTS,
-        m_ps.generateSolarSystem()
+        settings.procedural ? m_ps.generateProceduralSystem() : m_ps.generateSolarSystem()
     };
 
     m_camera_at = 0;
@@ -174,7 +187,7 @@ void Renderer::updateGeometry() {
 
 // Creates a mapping between texture filename and GL Texture
 void Renderer::generateTextures() {
-    if (settings.proceduralTexture) {
+    if (!settings.procedural) {
         for (int i = 0; i < planet_type_count; ++i) {
             auto color = m_terrain.generateTerrainColors(i);
             auto resolution = m_terrain.getResolution();
@@ -187,28 +200,64 @@ void Renderer::generateTextures() {
                          GL_RGBA, GL_FLOAT, color.data());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            m_texture_map[std::to_string(i)] = color_map;
+            m_procedural_texture_map[i] = color_map;
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+    } else {
+        int div = settings.numPlanet / 2 + 1;
+
+        for (int i = 0; i < settings.numPlanet; ++i) {
+            std::vector<float> color;
+            if (i == 0) {
+                color = m_terrain.generateTerrainColors(PlanetType::PLANET_SUN);
+            } else if (i <= div) {
+                color = m_terrain.generateTerrainColors(PlanetType::PLANET_ROCKY);
+            } else {
+                color = m_terrain.generateTerrainColors(PlanetType::PLANET_GAS);
+            }
+            auto resolution = m_terrain.getResolution();
+            GLuint color_map;
+            glGenTextures(1, &color_map);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, color_map);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                         resolution * 2, resolution, 0,
+                         GL_RGBA, GL_FLOAT, color.data());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            m_procedural_texture_map[i] = color_map;
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+
+        for (int i = settings.numPlanet; i < settings.numPlanet + m_ps.getNumMoon(); ++i) {
+            auto color = m_terrain.generateTerrainColors(PlanetType::PLANET_MOON);
+            auto resolution = m_terrain.getResolution();
+            GLuint color_map;
+            glGenTextures(1, &color_map);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, color_map);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                         resolution * 2, resolution, 0,
+                         GL_RGBA, GL_FLOAT, color.data());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            m_procedural_texture_map[i] = color_map;
             glBindTexture(GL_TEXTURE_2D, 0);
         }
     }
-    else {
-        for (auto &shape: m_data.shapes) {
-            if (shape->primitive.material.textureMap.isUsed) {
-                auto fpath = shape->primitive.material.textureMap.filename;
-                if (m_texture_map.find(fpath) == m_texture_map.end()) {
-                    auto img = QImage(fpath.data()).convertToFormat(QImage::Format_RGBA8888).mirrored();
-                    GLuint texture;
-                    glGenTextures(1, &texture);
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, texture);
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.width(), img.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, img.bits());
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                    glBindTexture(GL_TEXTURE_2D, 0);
-                    m_texture_map[fpath] = texture;
-                }
-            }
-        }
+
+    for (int i = 0; i < DEFAULT_TEXTURES.size(); ++i) {
+        auto fpath = DEFAULT_TEXTURES[i];
+        auto img = QImage(fpath.data()).convertToFormat(QImage::Format_RGBA8888).mirrored();
+        GLuint texture;
+        glGenTextures(1, &texture);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.width(), img.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, img.bits());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        m_default_texture_map[i] = texture;
     }
 }
 
@@ -366,11 +415,10 @@ void Renderer::renderGeometry(GLuint shader) {
         // Load texture if necessasry
         if (shape->primitive.material.textureMap.isUsed) {
             glActiveTexture(GL_TEXTURE0);
-            if (settings.proceduralTexture) {
-                glBindTexture(GL_TEXTURE_2D, m_texture_map[std::to_string(shape->type)]);
-            }
-            else {
-                glBindTexture(GL_TEXTURE_2D, m_texture_map[shape->primitive.material.textureMap.filename]);
+            if (!settings.procedural && !settings.proceduralTexture) {
+                glBindTexture(GL_TEXTURE_2D, m_default_texture_map[shape->type]);
+            } else {
+                glBindTexture(GL_TEXTURE_2D, m_procedural_texture_map[shape->type]);
             }
         }
 
@@ -445,10 +493,15 @@ void Renderer::clearGeometryData() {
 
 void Renderer::clearTextureData() {
     // Recycle all textures
-    for (auto &it: m_texture_map) {
+    for (auto &it: m_default_texture_map) {
         glDeleteTextures(1, &it.second);
     }
-    m_texture_map.clear();
+    for (auto &it: m_procedural_texture_map) {
+        glDeleteTextures(1, &it.second);
+    }
+
+    m_default_texture_map.clear();
+    m_procedural_texture_map.clear();
 }
 
 void Renderer::clearSceneData() {

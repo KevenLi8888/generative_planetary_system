@@ -24,6 +24,7 @@ private:
     void connectFar();
     void connectFilters();
     void connectGPS();
+    void connectG1();
 
     Realtime *realtime;
     QSlider *p1Slider;
@@ -43,9 +44,14 @@ private:
     QCheckBox *filter6;
 
     // Final Project
+    QPushButton *demo;
     QPushButton *pause;
+    QPushButton *procedural;
     QCheckBox *orbitCamera;
     QCheckBox *showOrbits;
+    QCheckBox *proceduralTexture;
+    QSlider *numPlanetSlider;
+    QSpinBox *numPlanetBox;
 
 private slots:
     void onValChangeP1(int newValue);
@@ -64,7 +70,11 @@ private slots:
     void onFilter6();
 
     // Final Project
+    void onDemo();
+    void onProcedural();
     void onPause();
     void onOrbitCamera();
     void onShowOrbits();
+    void onProceduralTexture();
+    void onValChangeG1(int newValue);
 };

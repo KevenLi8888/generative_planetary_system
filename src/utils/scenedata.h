@@ -153,6 +153,8 @@ struct SceneNode {
    std::vector<SceneNode*>           children;
 };
 
+
+
 // Struct which contains data for a single primitive, to be used for rendering
 struct RenderShapeData {
     ScenePrimitive primitive;

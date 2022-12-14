@@ -20,6 +20,7 @@ public:
         float nearPlane;
         float farPlane;
         bool orbitCamera;
+        int numPlanet;
     };
 public:
     Realtime(QWidget *parent = nullptr);

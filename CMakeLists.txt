@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Specifies required Qt components
-# set(CMAKE_PREFIX_PATH "/Users/kevenli/Qt/6.2.4/macos/lib/cmake") # make things work in CLion IDE
+set(CMAKE_PREFIX_PATH "/Users/kevenli/Qt/6.2.4/macos/lib/cmake") # make things work in CLion IDE
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Gui)
 find_package(Qt6 REQUIRED COMPONENTS OpenGL)
@@ -41,7 +41,7 @@ add_executable(${PROJECT_NAME}
     src/utils/scenefilereader.h
     src/utils/sceneparser.h
     src/utils/shaderloader.h
-        src/utils/camera.cpp src/utils/camera.h src/utils/primitive.cpp src/utils/primitive.h src/utils/debug.h)
+        src/utils/camera.cpp src/utils/camera.h src/utils/primitive.cpp src/utils/primitive.h src/utils/debug.h src/utils/terraingenerator.cpp src/utils/terraingenerator.h)
 
 # GLM: this creates its library and allows you to `#include "glm/..."`
 add_subdirectory(glm)

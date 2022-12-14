@@ -157,6 +157,7 @@ struct SceneNode {
 struct RenderShapeData {
     ScenePrimitive primitive;
     glm::mat4 ctm; // the cumulative transformation matrix
+    int type = 0;  // for procedural texture generation: indicate which color palette to use
 };
 
 // Struct which contains all the data needed to render a scene

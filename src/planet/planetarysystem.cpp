@@ -10,6 +10,7 @@ struct SolarSystemPlanet {
     float orbital_radius;       // 10^6km
     float orbital_period;       // days
     float orbital_inclination;  // degrees
+    int type = 0;               // for procedural texture generation: indicate which color palette to use
 };
 
 SolarSystemPlanet Sun {
@@ -19,6 +20,7 @@ SolarSystemPlanet Sun {
     0,
     0,
     0,
+    0
 };
 
 SolarSystemPlanet Moon {
@@ -28,6 +30,7 @@ SolarSystemPlanet Moon {
     0.384,
     27.3,
     5.1,
+    9
 };
 
 // https://nssdc.gsfc.nasa.gov/planetary/factsheet/
@@ -42,6 +45,7 @@ std::vector<SolarSystemPlanet> Planets {
         57.9,
         88,
         7.0,
+        1
     },
     // Venus
     SolarSystemPlanet {
@@ -51,6 +55,7 @@ std::vector<SolarSystemPlanet> Planets {
         108.2,
         224.7,
         3.4,
+        2
     },
     // Earth
     SolarSystemPlanet {
@@ -60,6 +65,7 @@ std::vector<SolarSystemPlanet> Planets {
         149.6,
         365.2,
         0,
+        3
     },
     // Mars
     SolarSystemPlanet {
@@ -69,6 +75,7 @@ std::vector<SolarSystemPlanet> Planets {
         228,
         687,
         1.8,
+        4
     },
     // Jupiter
     SolarSystemPlanet {
@@ -78,6 +85,7 @@ std::vector<SolarSystemPlanet> Planets {
         778.5,
         4331,
         1.3,
+        5
     },
     // Saturn
     SolarSystemPlanet {
@@ -87,6 +95,7 @@ std::vector<SolarSystemPlanet> Planets {
         1432,
         10747,
         2.5,
+        6
     },
     // Uranus
     SolarSystemPlanet {
@@ -96,6 +105,7 @@ std::vector<SolarSystemPlanet> Planets {
         2867,
         30589,
         0.8,
+        7
     },
     // Neptune
     SolarSystemPlanet {
@@ -105,6 +115,7 @@ std::vector<SolarSystemPlanet> Planets {
         4515,
         59800,
         1.8,
+        8
     },
 };
 
@@ -143,7 +154,7 @@ std::vector<RenderShapeData*> PlanetarySystem::generateSolarSystem() {
 
     // Add sun
     mat.textureMap.filename = Sun.texture_fname;
-    RenderShapeData *sun_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1)};
+    RenderShapeData *sun_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1), 0};
     Planet *sun = new Planet(scaleDiameter(Sun.diameter), 0, 0, 0, 0, glm::vec3(0, 1, 0), sun_shape);
     std::vector<Planet*> sun_children;
     data.push_back(sun_shape);
@@ -157,7 +168,7 @@ std::vector<RenderShapeData*> PlanetarySystem::generateSolarSystem() {
     // Add planets
     for (auto &planet: Planets) {
         mat.textureMap.filename = planet.texture_fname;
-        RenderShapeData *p_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1)};
+        RenderShapeData *p_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1), planet.type};
         Planet *p = new Planet(scaleDiameter(planet.diameter),
                                scaleVelocity(1 / planet.orbital_period),
                                planet.rotational_velocity / planet.diameter,
@@ -172,7 +183,7 @@ std::vector<RenderShapeData*> PlanetarySystem::generateSolarSystem() {
 
     // Add moon to earth
     mat.textureMap.filename = Moon.texture_fname;
-    RenderShapeData *moon_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1)};
+    RenderShapeData *moon_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1), 9};
     Planet *moon = new Planet(Moon.diameter / 20000.f,
                            scaleVelocity(1 / Moon.orbital_period),
                            Moon.rotational_velocity / Moon.diameter,

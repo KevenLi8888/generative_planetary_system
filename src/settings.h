@@ -18,6 +18,7 @@ struct Settings {
     bool pause = false;
     bool orbitCamera = false;
     bool showOrbits = true;
+    bool proceduralTexture = true;
 };
 
 

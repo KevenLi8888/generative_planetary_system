@@ -174,22 +174,41 @@ void Renderer::updateGeometry() {
 
 // Creates a mapping between texture filename and GL Texture
 void Renderer::generateTextures() {
-    for (auto &shape: m_data.shapes) {
-        if (shape->primitive.material.textureMap.isUsed) {
-            auto fpath = shape->primitive.material.textureMap.filename;
-            if (m_texture_map.find(fpath) == m_texture_map.end()) {
-                auto img = QImage(fpath.data()).convertToFormat(QImage::Format_RGBA8888).mirrored();
-                GLuint texture;
-                glGenTextures(1, &texture);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, texture);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.width(), img.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, img.bits());
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glBindTexture(GL_TEXTURE_2D, 0);
-                m_texture_map[fpath] = texture;
+    if (settings.proceduralTexture) {
+        for (int i = 0; i < planet_type_count; ++i) {
+            auto color = m_terrain.generateTerrainColors(i);
+            auto resolution = m_terrain.getResolution();
+            GLuint color_map;
+            glGenTextures(1, &color_map);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, color_map);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                         resolution * 2, resolution, 0,
+                         GL_RGBA, GL_FLOAT, color.data());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            m_texture_map[std::to_string(i)] = color_map;
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+    }
+    else {
+        for (auto &shape: m_data.shapes) {
+            if (shape->primitive.material.textureMap.isUsed) {
+                auto fpath = shape->primitive.material.textureMap.filename;
+                if (m_texture_map.find(fpath) == m_texture_map.end()) {
+                    auto img = QImage(fpath.data()).convertToFormat(QImage::Format_RGBA8888).mirrored();
+                    GLuint texture;
+                    glGenTextures(1, &texture);
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, texture);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.width(), img.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, img.bits());
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    glBindTexture(GL_TEXTURE_2D, 0);
+                    m_texture_map[fpath] = texture;
+                }
             }
-         }
+        }
     }
 }
 
@@ -347,7 +366,12 @@ void Renderer::renderGeometry(GLuint shader) {
         // Load texture if necessasry
         if (shape->primitive.material.textureMap.isUsed) {
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, m_texture_map[shape->primitive.material.textureMap.filename]);
+            if (settings.proceduralTexture) {
+                glBindTexture(GL_TEXTURE_2D, m_texture_map[std::to_string(shape->type)]);
+            }
+            else {
+                glBindTexture(GL_TEXTURE_2D, m_texture_map[shape->primitive.material.textureMap.filename]);
+            }
         }
 
         // Draw shape

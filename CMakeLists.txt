@@ -60,7 +60,8 @@ add_executable(${PROJECT_NAME}
     src/planet/planetarysystem.h
     src/planet/planet.h
     src/shape/ring.h
-)
+    src/utils/terraingenerator.cpp
+    src/utils/terraingenerator.h)
 
 # GLM: this creates its library and allows you to `#include "glm/..."`
 add_subdirectory(glm)

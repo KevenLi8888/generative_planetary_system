@@ -10,6 +10,7 @@
 #include "camera/camera.h"
 #include "planet/planetarysystem.h"
 #include <unordered_map>
+#include "utils/terraingenerator.h"
 
 struct MeshData {
     GLuint vao;
@@ -71,6 +72,8 @@ private:
     // Texture related resources
    std::unordered_map<std::string, GLuint> m_texture_map;
    void generateTextures();
+   int planet_type_count = 10;
+   TerrainGenerator m_terrain;
 
    // Final Project
    PlanetarySystem m_ps;

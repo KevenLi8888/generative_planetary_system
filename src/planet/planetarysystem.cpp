@@ -1,6 +1,8 @@
 #include "planet/planetarysystem.h"
 #include "glm/gtx/transform.hpp"
 
+#include "settings.h"
+
 #include <random>
 
 struct SolarSystemPlanet {
@@ -153,7 +155,6 @@ std::vector<RenderShapeData*> PlanetarySystem::generateSolarSystem() {
     mat.textureMap.repeatV = 1;
 
     // Add sun
-    mat.textureMap.filename = Sun.texture_fname;
     RenderShapeData *sun_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1), 0};
     Planet *sun = new Planet(scaleDiameter(Sun.diameter), 0, 0, 0, 0, glm::vec3(0, 1, 0), sun_shape);
     std::vector<Planet*> sun_children;
@@ -167,7 +168,6 @@ std::vector<RenderShapeData*> PlanetarySystem::generateSolarSystem() {
 
     // Add planets
     for (auto &planet: Planets) {
-        mat.textureMap.filename = planet.texture_fname;
         RenderShapeData *p_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1), planet.type};
         Planet *p = new Planet(scaleDiameter(planet.diameter),
                                scaleVelocity(1 / planet.orbital_period),
@@ -182,7 +182,6 @@ std::vector<RenderShapeData*> PlanetarySystem::generateSolarSystem() {
     }
 
     // Add moon to earth
-    mat.textureMap.filename = Moon.texture_fname;
     RenderShapeData *moon_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1), 9};
     Planet *moon = new Planet(Moon.diameter / 20000.f,
                            scaleVelocity(1 / Moon.orbital_period),
@@ -196,6 +195,77 @@ std::vector<RenderShapeData*> PlanetarySystem::generateSolarSystem() {
     // Set up hierarchy
     moon->setParent(sun_children[2]);
     sun_children[2]->setChildren({ moon });
+    sun->setChildren(sun_children);
+
+    m_root = sun;
+
+    return data;
+}
+
+std::vector<RenderShapeData*> PlanetarySystem::generateProceduralSystem() {
+    std::vector<RenderShapeData*> data;
+
+    SceneMaterial mat;
+    mat.cDiffuse = glm::vec4(1, 1, 1, 0);
+    mat.blend = 1;
+    mat.textureMap.isUsed = true;
+    mat.textureMap.repeatU = 1;
+    mat.textureMap.repeatV = 1;
+
+    float sun_diameter = 1.5;
+
+    // Add sun
+    mat.textureMap.filename = Sun.texture_fname;
+    RenderShapeData *sun_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1), 0};
+    Planet *sun = new Planet(sun_diameter, 0, 0, 0, 0, glm::vec3(0, 1, 0), sun_shape);
+    std::vector<Planet*> sun_children;
+    data.push_back(sun_shape);
+
+    // Change parameters for other planets
+    mat.blend = 0.5;
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<float> dist(0.f, glm::pi<float>() * 2.f);
+    std::uniform_real_distribution<float> diameter(0.f, 0.2f);
+    std::uniform_real_distribution<float> rotate_v(0.1f, 0.3f);
+    std::uniform_real_distribution<float> orbit_v(0.f, 0.2f);
+    std::uniform_real_distribution<float> orbit_inc(-7.f, 7.f);
+
+    for (int i = 1; i < settings.numPlanet; ++i) {
+        RenderShapeData *p_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1), i};
+        Planet *p = new Planet(i * sun_diameter / (2 * settings.numPlanet) + diameter(mt),
+                               0.5 * (1 - (float)i / settings.numPlanet) + orbit_v(mt),
+                               rotate_v(mt),
+                               dist(mt),
+                               sun_diameter * i / 1.5 + 1.5 + (1- (float)i / settings.numPlanet) * 0.5,
+                               computeAxis(orbit_inc(mt) / sqrt((float)i)),
+                               p_shape);
+        sun_children.push_back(p);
+        data.push_back(p_shape);
+        p->setParent(sun);
+    }
+
+    std::uniform_real_distribution<float> moon_dice(0.f, 1.f);
+
+    for (int i = 1; i < settings.numPlanet; ++i) {
+        if (moon_dice(mt) < 1.f / settings.numPlanet) {
+            RenderShapeData *moon_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1), settings.numPlanet + m_num_moon};
+            auto moon_diameter = (i * sun_diameter / (2 * settings.numPlanet) + diameter(mt)) / 5;
+            Planet *moon = new Planet(moon_diameter,
+                                   0.3,
+                                   0.1,
+                                   dist(mt),
+                                   moon_diameter * 5,
+                                   computeAxis(0),
+                                   moon_shape);
+            data.push_back(moon_shape);
+            sun_children[i-1]->setChildren({moon});
+            moon->setParent(sun_children[i-1]);
+            m_num_moon += 1;
+        }
+    }
+
+    // Set up hierarchy
     sun->setChildren(sun_children);
 
     m_root = sun;

@@ -32,7 +32,13 @@ void MainWindow::initialize() {
     GPS_label->setFont(section_font);
     QLabel *GPS_features_label = new QLabel();
     GPS_features_label->setText("Features");
-    GPS_features_label->setFont(font);
+    GPS_features_label->setFont(section_font);
+    QLabel *GPS_params_label = new QLabel();
+    GPS_params_label->setText("Procedural Parameters");
+    GPS_params_label->setFont(section_font);
+    QLabel *num_planet_label = new QLabel();
+    num_planet_label->setText("Number of Planets");
+    num_planet_label->setFont(font);
     QLabel *tesselation_label = new QLabel(); // Parameters label
     tesselation_label->setText("Tesselation");
     tesselation_label->setFont(font);
@@ -157,6 +163,12 @@ void MainWindow::initialize() {
     filter6->setChecked(false);
 
     // Final Project:
+    demo = new QPushButton();
+    demo->setText(QStringLiteral("Solar System"));
+
+    procedural = new QPushButton();
+    procedural->setText(QStringLiteral("Procedural System"));
+
     pause = new QPushButton();
     pause->setText(QStringLiteral("Pause"));
 
@@ -168,10 +180,39 @@ void MainWindow::initialize() {
     orbitCamera->setText(QStringLiteral("Use Orbit Camera"));
     orbitCamera->setChecked(false);
 
+    proceduralTexture = new QCheckBox();
+    proceduralTexture->setText(QStringLiteral("Use Procedural Texture"));
+    proceduralTexture->setChecked(false);
+
+    QGroupBox *g1Layout = new QGroupBox();
+    QHBoxLayout *g1 = new QHBoxLayout();
+
+    numPlanetSlider = new QSlider(Qt::Orientation::Horizontal); // Parameter 1 slider
+    numPlanetSlider->setTickInterval(1);
+    numPlanetSlider->setMinimum(1);
+    numPlanetSlider->setMaximum(12);
+    numPlanetSlider->setValue(1);
+
+    numPlanetBox = new QSpinBox();
+    numPlanetBox->setMinimum(1);
+    numPlanetBox->setMaximum(12);
+    numPlanetBox->setSingleStep(1);
+    numPlanetBox->setValue(1);
+
+    g1->addWidget(numPlanetSlider);
+    g1->addWidget(numPlanetBox);
+    g1Layout->setLayout(g1);
+
     vLayout->addWidget(GPS_label);
+    vLayout->addWidget(demo);
+    vLayout->addWidget(procedural);
     vLayout->addWidget(pause);
     vLayout->addWidget(GPS_features_label);
     vLayout->addWidget(showOrbits);
+    vLayout->addWidget(proceduralTexture);
+    vLayout->addWidget(GPS_params_label);
+    vLayout->addWidget(num_planet_label);
+    vLayout->addWidget(g1Layout);
     vLayout->addWidget(tesselation_label);
     vLayout->addWidget(param1_label);
     vLayout->addWidget(p1Layout);
@@ -202,6 +243,7 @@ void MainWindow::initialize() {
     onValChangeFarBox(100.f);
 
     // Set default values for GPS
+    onValChangeG1(9);
 }
 
 void MainWindow::finish() {
@@ -216,6 +258,7 @@ void MainWindow::connectUIElements() {
     connectNear();
     connectFar();
     connectGPS();
+    connectG1();
 }
 
 void MainWindow::connectFilters() {
@@ -252,9 +295,12 @@ void MainWindow::connectFar() {
 }
 
 void MainWindow::connectGPS() {
-    connect(pause, &QCheckBox::clicked, this, &MainWindow::onPause);
+    connect(demo, &QPushButton::clicked, this, &MainWindow::onDemo);
+    connect(procedural, &QPushButton::clicked, this, &MainWindow::onProcedural);
+    connect(pause, &QPushButton::clicked, this, &MainWindow::onPause);
     connect(showOrbits, &QCheckBox::clicked, this, &MainWindow::onShowOrbits);
     connect(orbitCamera, &QCheckBox::clicked, this, &MainWindow::onOrbitCamera);
+    connect(proceduralTexture, &QCheckBox::clicked, this, &MainWindow::onProceduralTexture);
 }
 
 void MainWindow::onValChangeP1(int newValue) {
@@ -324,6 +370,16 @@ void MainWindow::onFilter6() {
     settings.filter6 = !settings.filter6;
 }
 
+void MainWindow::onDemo() {
+    settings.procedural = false;
+    realtime->sceneChanged();
+}
+
+void MainWindow::onProcedural() {
+    settings.procedural = true;
+    realtime->sceneChanged();
+}
+
 void MainWindow::onPause() {
     settings.pause = !settings.pause;
 }
@@ -335,4 +391,20 @@ void MainWindow::onShowOrbits() {
 void MainWindow::onOrbitCamera() {
     settings.orbitCamera = !settings.orbitCamera;
     realtime->settingsChanged();
+}
+
+void MainWindow::onProceduralTexture() {
+    settings.proceduralTexture = !settings.proceduralTexture;
+}
+
+void MainWindow::onValChangeG1(int newValue) {
+    numPlanetSlider->setValue(newValue);
+    numPlanetBox->setValue(newValue);
+    settings.numPlanet = numPlanetSlider->value();
+}
+
+void MainWindow::connectG1() {
+    connect(numPlanetSlider, &QSlider::valueChanged, this, &MainWindow::onValChangeG1);
+    connect(numPlanetBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+            this, &MainWindow::onValChangeG1);
 }

@@ -55,6 +55,7 @@ void Realtime::resetConfig() {
         settings.nearPlane,
         settings.farPlane,
         settings.orbitCamera,
+        settings.numPlanet
     };
 }
 
@@ -231,6 +232,7 @@ void Realtime::resizeGL(int w, int h) {
 }
 
 void Realtime::sceneChanged() {
+    m_renderer.updateScene(size().width(), size().height());
     resetConfig();
     update(); // asks for a PaintGL() call to occur
 }

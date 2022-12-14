@@ -1,6 +1,19 @@
 // Part of the codes are from lab 7
 
 #include "terraingenerator.h"
+#include <random>
+
+void TerrainGenerator::updateNoise() {
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<float> dist(-1.f, 1.f);
+
+    m_randVecLookup.clear();
+    for (int i = 0; i < m_lookupSize; i++)
+    {
+        m_randVecLookup.push_back(glm::vec2(dist(mt), dist(mt)));
+    }
+}
 
 TerrainGenerator::TerrainGenerator() {
     // Define resolution of terrain generation
@@ -9,16 +22,6 @@ TerrainGenerator::TerrainGenerator() {
     // Generate random vector lookup table
     m_lookupSize = 1024;
     m_randVecLookup.reserve(m_lookupSize);
-
-    // Initialize random number generator
-    std::srand(1230);
-
-    // Populate random vector lookup table
-    for (int i = 0; i < m_lookupSize; i++)
-    {
-        m_randVecLookup.push_back(glm::vec2(std::rand() * 2.0 / RAND_MAX - 1.0,
-                                            std::rand() * 2.0 / RAND_MAX - 1.0));
-    }
 
     // prepare color palette
     // https://imgur.com/a/OCCq2gl
@@ -67,7 +70,7 @@ TerrainGenerator::TerrainGenerator() {
                                           glm::vec3(0.40, 0.48, 0.65),
                                           glm::vec3(0.45, 0.58, 0.75),
                                           glm::vec3(0.47, 0.62, 0.75)};
-    // Pluto
+    // Moon
     planet_color_palette[9] = std::vector{glm::vec3(0.84, 0.70, 0.73),
                                           glm::vec3(0.66, 0.62, 0.59),
                                           glm::vec3(0.96, 0.92, 0.87),
@@ -103,6 +106,7 @@ std::vector<float>& TerrainGenerator::generateTerrainNormals() {
 
 std::vector<float>& TerrainGenerator::generateTerrainColors(int type) {
     colors.clear();
+    updateNoise();
     for (int x = 0; x < m_resolution; ++x) {
         for(int y = 0; y < m_resolution * 2; ++y) {
             glm::vec3 color;
@@ -114,10 +118,59 @@ std::vector<float>& TerrainGenerator::generateTerrainColors(int type) {
                 else {
                     pos = getPosition(x, ((m_resolution - 1) - y % (m_resolution)));
                 }
-                color = getColorFromPerlin(pos, type);
+                color = getColorFromPerlin(pos, planet_color_palette[type]);
             }
             else {
-                color = getColorForRing(x, y, type);
+                color = getColorForRing(x, y, planet_color_palette[type]);
+            }
+            insertVec3(colors, color);
+            colors.push_back(1.0);
+        }
+    }
+    return colors;
+}
+
+std::vector<float>& TerrainGenerator::generateTerrainColors(PlanetType type) {
+    std::vector<glm::vec3> palette;
+
+    if (type == PlanetType::PLANET_SUN) {
+        palette = planet_color_palette[0];
+    } else if (type == PlanetType::PLANET_MOON) {
+        palette = planet_color_palette[9];
+    } else if (type == PlanetType::PLANET_ROCKY) {
+        palette = planet_color_palette[1 + rand() % 4];
+    } else {
+        palette = planet_color_palette[5 + rand() % 4];
+    }
+
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<float> dist(-0.05f, 0.05f);
+
+    for (int i = 0; i < palette.size(); ++i) {
+        palette[i].x += dist(mt);
+        palette[i].y += dist(mt);
+        palette[i].z += dist(mt);
+    }
+
+    updateNoise();
+    colors.clear();
+    for (int x = 0; x < m_resolution; ++x) {
+        for(int y = 0; y < m_resolution * 2; ++y) {
+            glm::vec3 color;
+            if (type != PlanetType::PLANET_GAS) {
+                glm::vec3 pos;
+                if (y <= m_resolution - 1) {
+                    pos = getPosition(x, y);
+                }
+                else {
+                    pos = getPosition(x, ((m_resolution - 1) - y % (m_resolution)));
+                }
+
+                color = getColorFromPerlin(pos, palette);
+            }
+            else {
+                color = getColorForRing(x, y, palette);
             }
             insertVec3(colors, color);
             colors.push_back(1.0);
@@ -189,34 +242,34 @@ glm::vec3 TerrainGenerator::getNormal(int row, int col) {
     return glm::normalize(normal);
 }
 
-glm::vec3 TerrainGenerator::getColorFromPerlin(glm::vec3 position, int type) {
+glm::vec3 TerrainGenerator::getColorFromPerlin(glm::vec3 position, std::vector<glm::vec3> &palette) {
     glm::vec3 result;
     auto height = position.y;
     float threshold[7] = {0.05, 0.04, 0.02, 0.01, -0.01, -0.015, -0.03};
 
     if (height >= threshold[0]) {
-        result = planet_color_palette[type][3];
+        result = palette[3];
     }
     else if (height >= threshold[1]) {
         auto a = (height-threshold[1])/(threshold[0]-threshold[1]);
-        result = glm::mix(planet_color_palette[type][2], planet_color_palette[type][3], a);
+        result = glm::mix(palette[2], palette[3], a);
     }
     else if (height >= threshold[2]) {
-        result = planet_color_palette[type][2];
+        result = palette[2];
     }
     else if (height >= threshold[3]) {
         auto a = (height-threshold[3])/(threshold[2]-threshold[3]);
-        result = glm::mix(planet_color_palette[type][1], planet_color_palette[type][2], a);
+        result = glm::mix(palette[1], palette[2], a);
     }
     else if (height >= threshold[4]) {
-        result = planet_color_palette[type][1];
+        result = palette[1];
     }
     else if (height >= threshold[5]) {
         auto a = (height-threshold[5])/(threshold[4]-threshold[5]);
-        result = glm::mix(planet_color_palette[type][0], planet_color_palette[type][1], a);
+        result = glm::mix(palette[0], palette[1], a);
     }
     else {
-        result = planet_color_palette[type][0];
+        result = palette[0];
     }
 
     // Return white as placeholder
@@ -258,30 +311,29 @@ float TerrainGenerator::computePerlin(float x, float y) {
     return interpolate(G, H, y-base_y);
 }
 
-glm::vec3 TerrainGenerator::getColorForRing(int x, int y, int type) {
+glm::vec3 TerrainGenerator::getColorForRing(int x, int y, std::vector<glm::vec3> &palette) {
     auto t = getBezierCurve(0, 75 + x % 25, 0, float(y/2)/m_resolution);
-//    std::cout << t << std::endl;
     x += t;
     if (x < m_resolution / 8) {
-        return planet_color_palette[type][3];
+        return palette[3];
     }
     else if (x < 2 * m_resolution / 8) {
-        return planet_color_palette[type][2];
+        return palette[2];
     }
     else if (x < 7 * m_resolution / 16) {
-        return planet_color_palette[type][1];
+        return palette[1];
     }
     else if (x < 5 * m_resolution / 8) {
-        return planet_color_palette[type][0];
+        return palette[0];
     }
     else if (x < 6 * m_resolution / 8) {
-        return planet_color_palette[type][1];
+        return palette[1];
     }
     else if (x < 7 * m_resolution / 8) {
-        return planet_color_palette[type][2];
+        return palette[2];
     }
     else {
-        return planet_color_palette[type][3];
+        return palette[3];
     }
 }
 

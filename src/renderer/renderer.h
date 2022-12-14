@@ -71,7 +71,8 @@ private:
     MeshData bindMesh(std::vector<float> &mesh, std::vector<int> &config);
 
     // Texture related resources
-   std::unordered_map<std::string, GLuint> m_texture_map;
+   std::unordered_map<int, GLuint> m_default_texture_map;
+   std::unordered_map<int, GLuint> m_procedural_texture_map;
    void generateTextures();
    int planet_type_count = 10;
    TerrainGenerator m_terrain;

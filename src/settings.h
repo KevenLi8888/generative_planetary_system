@@ -15,11 +15,13 @@ struct Settings {
     bool filter4 = false;
     bool filter5 = false;
     bool filter6 = false;
+    bool procedural = false;
     bool pause = false;
     bool orbitCamera = false;
     bool showOrbits = true;
     bool proceduralTexture = false;
     bool normalMapping = true;
+    int numPlanet = 9;
 };
 
 

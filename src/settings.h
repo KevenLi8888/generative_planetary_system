@@ -9,15 +9,15 @@ struct Settings {
     int shapeParameter2 = 1;
     float nearPlane = 1;
     float farPlane = 1;
-    bool perPixelFilter = false;
-    bool kernelBasedFilter = false;
-    bool extraCredit1 = false;
-    bool extraCredit2 = false;
-    bool extraCredit3 = false;
-    bool extraCredit4 = false;
-    bool extraCredit5 = false;
-    bool GPS = false;
+    bool filter1 = false;
+    bool filter2 = false;
+    bool filter3 = false;
+    bool filter4 = false;
+    bool filter5 = false;
+    bool filter6 = false;
+    bool pause = false;
     bool orbitCamera = false;
+    bool showOrbits = true;
 };
 
 

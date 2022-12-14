@@ -1,16 +1,15 @@
 #include "planet/planetarysystem.h"
 #include "glm/gtx/transform.hpp"
 
-#include <iostream>
+#include <random>
 
 struct SolarSystemPlanet {
     std::string texture_fname;
     float diameter;             // km
     float rotational_velocity;  // km/h
-    float orbital_radius;
-    float orbital_velocity;
-    float orbital_inclination;
-    int num_moons;
+    float orbital_radius;       // 10^6km
+    float orbital_period;       // days
+    float orbital_inclination;  // degrees
 };
 
 SolarSystemPlanet Sun {
@@ -20,19 +19,20 @@ SolarSystemPlanet Sun {
     0,
     0,
     0,
-    0
 };
 
-//    SolarSystemPlanet {
-//            // texture_fname;
-//            // diameter;
-//            // rotational_velocity;
-//            // orbital_radius;
-//            // orbital_velocity;
-//            // orbital_inclination;
-//            // num_moons;
-//    },
+SolarSystemPlanet Moon {
+    "resources/images/moon.jpeg",
+    3475,
+    16.7,
+    0.384,
+    27.3,
+    5.1,
+};
 
+// https://nssdc.gsfc.nasa.gov/planetary/factsheet/
+// https://sos.noaa.gov/catalog/datasets/planet-rotations/
+// https://www.solarsystemscope.com/textures/
 std::vector<SolarSystemPlanet> Planets {
     // Mercury
     SolarSystemPlanet {
@@ -40,9 +40,8 @@ std::vector<SolarSystemPlanet> Planets {
         4879,
         10.83,
         57.9,
-        47.4,
+        88,
         7.0,
-        0
     },
     // Venus
     SolarSystemPlanet {
@@ -50,9 +49,8 @@ std::vector<SolarSystemPlanet> Planets {
         12104,
         6.52,
         108.2,
-        35,
+        224.7,
         3.4,
-        0
     },
     // Earth
     SolarSystemPlanet {
@@ -60,9 +58,8 @@ std::vector<SolarSystemPlanet> Planets {
         12756,
         1574,
         149.6,
-        29.8,
+        365.2,
         0,
-        1,
     },
     // Mars
     SolarSystemPlanet {
@@ -70,9 +67,8 @@ std::vector<SolarSystemPlanet> Planets {
         6792,
         866,
         228,
-        24.1,
+        687,
         1.8,
-        2,
     },
     // Jupiter
     SolarSystemPlanet {
@@ -80,9 +76,8 @@ std::vector<SolarSystemPlanet> Planets {
         142984,
         45583,
         778.5,
-        13.1,
+        4331,
         1.3,
-        79,
     },
     // Saturn
     SolarSystemPlanet {
@@ -90,9 +85,8 @@ std::vector<SolarSystemPlanet> Planets {
         120536,
         36840,
         1432,
-        9.7,
+        10747,
         2.5,
-        82,
     },
     // Uranus
     SolarSystemPlanet {
@@ -100,9 +94,8 @@ std::vector<SolarSystemPlanet> Planets {
         51118,
         14798,
         2867,
-        6.8,
+        30589,
         0.8,
-        27,
     },
     // Neptune
     SolarSystemPlanet {
@@ -110,9 +103,8 @@ std::vector<SolarSystemPlanet> Planets {
         49528,
         9719,
         4515,
-        5.4,
+        59800,
         1.8,
-        14,
     },
 };
 
@@ -136,7 +128,7 @@ float scaleOrbitalRadius(float radius) {
 }
 
 float scaleVelocity(float v) {
-    return log(v) / 3;
+    return sqrt(v) * 10;
 }
 
 std::vector<RenderShapeData*> PlanetarySystem::generateSolarSystem() {
@@ -156,15 +148,20 @@ std::vector<RenderShapeData*> PlanetarySystem::generateSolarSystem() {
     std::vector<Planet*> sun_children;
     data.push_back(sun_shape);
 
-    // Add planets
+    // Change parameters for other planets
     mat.blend = 0.5;
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_real_distribution<float> dist(0.f, glm::pi<float>() * 2.f);
+
+    // Add planets
     for (auto &planet: Planets) {
         mat.textureMap.filename = planet.texture_fname;
         RenderShapeData *p_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1)};
         Planet *p = new Planet(scaleDiameter(planet.diameter),
-                               scaleVelocity(planet.orbital_velocity),
-                               scaleVelocity(planet.rotational_velocity / planet.diameter),
-                               0,
+                               scaleVelocity(1 / planet.orbital_period),
+                               planet.rotational_velocity / planet.diameter,
+                               dist(mt),
                                scaleOrbitalRadius(planet.orbital_radius),
                                computeAxis(planet.orbital_inclination),
                                p_shape);
@@ -173,37 +170,22 @@ std::vector<RenderShapeData*> PlanetarySystem::generateSolarSystem() {
         p->setParent(sun);
     }
 
+    // Add moon to earth
+    mat.textureMap.filename = Moon.texture_fname;
+    RenderShapeData *moon_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1)};
+    Planet *moon = new Planet(Moon.diameter / 20000.f,
+                           scaleVelocity(1 / Moon.orbital_period),
+                           Moon.rotational_velocity / Moon.diameter,
+                           dist(mt),
+                           Moon.orbital_radius * 1.5,
+                           computeAxis(Moon.orbital_inclination),
+                           moon_shape);
+    data.push_back(moon_shape);
+
+    // Set up hierarchy
+    moon->setParent(sun_children[2]);
+    sun_children[2]->setChildren({ moon });
     sun->setChildren(sun_children);
-
-    m_root = sun;
-
-    return data;
-}
-
-// https://nssdc.gsfc.nasa.gov/planetary/factsheet/
-std::vector<RenderShapeData*> PlanetarySystem::generateSystem() {
-    std::vector<RenderShapeData*> data;
-
-    SceneMaterial mat;
-    mat.cDiffuse = glm::vec4(1, 1, 1, 0);
-    mat.blend = 0.75;
-    mat.textureMap.isUsed = true;
-    mat.textureMap.filename = "resources/images/marsTexture.png";
-    mat.textureMap.repeatU = 1;
-    mat.textureMap.repeatV = 1;
-
-    RenderShapeData *sun_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1)};
-    RenderShapeData *mars_shape = new RenderShapeData {{PrimitiveType::PRIMITIVE_SPHERE, mat}, glm::mat4(1)};
-
-    data.push_back(sun_shape);
-    data.push_back(mars_shape);
-
-    Planet *sun = new Planet(2, 0, 0, 0, 0, glm::vec3(0, 1, 0), sun_shape);
-    Planet *mars = new Planet(0.75, 0.5, 1, 0.1, 5, computeAxis(1.8f), mars_shape);
-
-
-    sun->setChildren({ mars });
-    mars->setParent(sun);
 
     m_root = sun;
 

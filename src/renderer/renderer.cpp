@@ -1,6 +1,5 @@
 #include "renderer/renderer.h"
 #include "utils/shaderloader.h"
-#include "utils/sceneparser.h"
 #include "shape/sphere.h"
 #include "shape/cube.h"
 #include "shape/cone.h"
@@ -49,7 +48,7 @@ SceneGlobalData DEFAULT_GLOBAL = {
 };
 
 SceneCameraData DEFAULT_CAMERA = {
-    glm::vec4(6, 3, 6, 1),      // pos
+    glm::vec4(30, 15, 30, 1),      // pos
     glm::vec4(-3, -1.5, -3, 0), // look
     glm::vec4(0, 1, 0, 0),      // up
     glm::radians(30.0),         // heightAngle
@@ -134,36 +133,26 @@ void Renderer::clearFBO() {
 
 // Construct scene from the input .xml file
 void Renderer::updateScene(int width, int height) {
-    RenderData new_data;
 
-    if (settings.GPS) {
-        m_ps = PlanetarySystem();
-        new_data = {
-            DEFAULT_GLOBAL,
-            DEFAULT_CAMERA,
-            DEFAULT_LIGHTS,
-//            m_ps.generateSystem()
-            m_ps.generateSolarSystem()
-        };
-        m_camera_at = 0;
-    } else if (!settings.GPS && settings.sceneFilePath.empty()) {
-        clearGeometryData();
-        clearTextureData();
-        m_data = new_data;
-        return;
-    } else if (!SceneParser::parse(settings.sceneFilePath, new_data)) {
-        std::cout << "Failed to parse scene file: " + settings.sceneFilePath << std::endl;
-        return;
-    }
+    m_ps = PlanetarySystem();
+
+    m_data = {
+        DEFAULT_GLOBAL,
+        DEFAULT_CAMERA,
+        DEFAULT_LIGHTS,
+        m_ps.generateSolarSystem()
+    };
+
+    m_camera_at = 0;
+    m_camera = Camera(width, height, m_data.cameraData);
+    m_camera.resetCameraOrbit();
 
     clearGeometryData();
     clearTextureData();
-
-    m_data = new_data;
-    m_camera = Camera(width, height, m_data.cameraData);
-    if (settings.GPS) m_camera.resetCameraOrbit();
     updateGeometry();
     generateTextures();
+
+    m_ready = true;
 }
 
 // Final Project
@@ -292,11 +281,10 @@ void Renderer::renderGeometry(GLuint shader) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Activate the shader program by calling glUseProgram
-    if (settings.GPS && settings.extraCredit5) glUseProgram(m_planet_shader);
-    else glUseProgram(shader);
+    glUseProgram(shader);
 
-    // Final Project
-    if (settings.GPS && settings.orbitCamera) {
+    // Update the camera location based on the planet it is looking at
+    if (settings.orbitCamera) {
         m_camera.updateCameraView(m_data.shapes[m_camera_at]);
     }
 
@@ -317,9 +305,6 @@ void Renderer::renderGeometry(GLuint shader) {
     // Pass in lighting information to the shader program
     int num_lights = std::min((int)m_data.lights.size(), 8);
     glUniform1i(glGetUniformLocation(shader, "num_lights"), num_lights);
-
-    // Pass in global texture settings
-    glUniform1i(glGetUniformLocation(shader, "enableTexture"), settings.extraCredit5);
 
     for (int i = 0; i < num_lights; ++i) {
         std::string prefix = "lights[" + std::to_string(i) + "].";
@@ -373,7 +358,7 @@ void Renderer::renderGeometry(GLuint shader) {
         glBindVertexArray(0);
     }
 
-    if (settings.GPS) {
+    if (settings.showOrbits) {
         glUseProgram(m_line_shader);
 
         for (auto &orbit_ctm: m_ps.getOrbitCtms()) {
@@ -467,10 +452,9 @@ void Renderer::switchCamera(std::unordered_map<Qt::Key, bool> &key_map, float ti
 }
 
 void Renderer::replaceCamera(int width, int height) {
+    m_camera = Camera(width, height, m_data.cameraData);
     if (settings.orbitCamera) {
         m_camera.resetCameraOrbit();
         m_camera_at = 0;
-    } else {
-        m_camera = Camera(width, height, m_data.cameraData);
     }
 }

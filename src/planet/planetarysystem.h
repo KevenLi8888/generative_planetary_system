@@ -5,7 +5,6 @@
 class PlanetarySystem {
 public:
     ~PlanetarySystem();
-    std::vector<RenderShapeData*> generateSystem();
     std::vector<RenderShapeData*> generateSolarSystem();
     void update(float deltaTime);
     std::vector<glm::mat4> getOrbitCtms();

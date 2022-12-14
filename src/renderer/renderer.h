@@ -28,6 +28,7 @@ class Renderer
 public:
     ~Renderer();
     void initialize(int screen_w, int screen_h);
+    bool isReady() const { return m_ready; };
     void updateScene(int width, int height);
     void updateGeometry();
     void updatePlanets(float deltaTime);
@@ -50,6 +51,7 @@ private:
     int m_screen_height;
     RenderData m_data;
     Camera m_camera;
+    bool m_ready = false;
 
     // Resources for post-processing effects
     GLuint m_default_fbo = 2;

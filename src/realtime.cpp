@@ -40,6 +40,7 @@ void Realtime::finish() {
     glDeleteProgram(m_sharpen_shader);
     glDeleteProgram(m_boxblur_shader);
     glDeleteProgram(m_emboss_shader);
+    glDeleteProgram(m_planet_shader);
 
     // Renderer recycles its own resource in its destructor
     this->doneCurrent();
@@ -52,11 +53,6 @@ void Realtime::resetConfig() {
         settings.shapeParameter2,
         settings.nearPlane,
         settings.farPlane,
-        settings.extraCredit1,
-        settings.extraCredit2,
-        settings.extraCredit3,
-        settings.extraCredit4,
-        settings.extraCredit5,
         settings.orbitCamera,
     };
 }
@@ -127,6 +123,11 @@ void Realtime::initializeGL() {
                 "resources/shaders/emboss.frag"
     );
 
+    m_planet_shader = ShaderLoader::createShaderProgram(
+                "resources/shaders/phong.vert",
+                "resources/shaders/planet.frag"
+    );
+
     configurePixelShaders();
 
     int screen_w = size().width() * m_devicePixelRatio;
@@ -134,6 +135,7 @@ void Realtime::initializeGL() {
     configureKernelShaders(screen_w, screen_h);
 
     m_renderer.initialize(screen_w, screen_h);
+    m_renderer.updateScene(size().width(), size().height());
 }
 
 void Realtime::configurePixelShaders() {
@@ -151,6 +153,9 @@ void Realtime::configurePixelShaders() {
 
     glUseProgram(m_chromatic_shader);
     glUniform1i(glGetUniformLocation(m_chromatic_shader, "tex"), 0);
+
+    glUseProgram(m_planet_shader);
+    glUniform1i(glGetUniformLocation(m_planet_shader, "tex"), 0);
 
     glUseProgram(0);
 }
@@ -178,20 +183,20 @@ void Realtime::configureKernelShaders(int w, int h) {
 }
 
 void Realtime::paintGL() {
-    if (settings.perPixelFilter)
-        m_renderer.render(m_phong_shader, m_invert_shader);
-    else if (settings.kernelBasedFilter)
-        m_renderer.render(m_phong_shader, m_boxblur_shader);
-    else if (settings.extraCredit1)
-        m_renderer.render(m_phong_shader, m_grayscale_shader);
-    else if (settings.extraCredit2)
-        m_renderer.render(m_phong_shader, m_chromatic_shader);
-    else if (settings.extraCredit3)
-        m_renderer.render(m_phong_shader, m_sharpen_shader);
-    else if (settings.extraCredit4)
-        m_renderer.render(m_phong_shader, m_emboss_shader);
+    if (settings.filter1)
+        m_renderer.render(m_planet_shader, m_invert_shader);
+    else if (settings.filter2)
+        m_renderer.render(m_planet_shader, m_chromatic_shader);
+    else if (settings.filter3)
+        m_renderer.render(m_planet_shader, m_grayscale_shader);
+    else if (settings.filter4)
+        m_renderer.render(m_planet_shader, m_boxblur_shader);
+    else if (settings.filter5)
+        m_renderer.render(m_planet_shader, m_sharpen_shader);
+    else if (settings.filter6)
+        m_renderer.render(m_planet_shader, m_emboss_shader);
     else
-        m_renderer.render(m_phong_shader, m_texture_shader);
+        m_renderer.render(m_planet_shader, m_texture_shader);
 }
 
 void Realtime::resizeGL(int w, int h) {
@@ -211,14 +216,12 @@ void Realtime::resizeGL(int w, int h) {
 }
 
 void Realtime::sceneChanged() {
-    m_renderer.updateScene(size().width(), size().height());
-
     resetConfig();
     update(); // asks for a PaintGL() call to occur
 }
 
 void Realtime::settingsChanged() {
-    if (settings.sceneFilePath == "" && !settings.GPS) return;
+    if (!m_renderer.isReady()) return;
 
     // Determine what needs to be updated
     bool needUpdateCamera = settings.nearPlane != m_config.nearPlane ||
@@ -283,8 +286,8 @@ void Realtime::timerEvent(QTimerEvent *event) {
     m_renderer.moveCamera(m_keyMap, deltaTime * 5);
     m_renderer.switchCamera(m_keyMap, deltaTime);
 
-    // Final Project
-    if (settings.GPS) {
+    // Update planet positions
+    if (!settings.pause) {
         m_renderer.updatePlanets(deltaTime);
     }
 

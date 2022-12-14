@@ -33,9 +33,6 @@ void MainWindow::initialize() {
     QLabel *GPS_features_label = new QLabel();
     GPS_features_label->setText("Features");
     GPS_features_label->setFont(font);
-    QLabel *realtime_label = new QLabel(); // Realtime Project label
-    realtime_label->setText("Realtime Engine");
-    realtime_label->setFont(section_font);
     QLabel *tesselation_label = new QLabel(); // Parameters label
     tesselation_label->setText("Tesselation");
     tesselation_label->setFont(font);
@@ -45,9 +42,6 @@ void MainWindow::initialize() {
     QLabel *filters_label = new QLabel(); // Filters label
     filters_label->setText("Filters");
     filters_label->setFont(font);
-    QLabel *ec_label = new QLabel(); // Extra Credit label
-    ec_label->setText("Extra Credit");
-    ec_label->setFont(font);
     QLabel *param1_label = new QLabel(); // Parameter 1 label
     param1_label->setText("Parameter 1:");
     QLabel *param2_label = new QLabel(); // Parameter 2 label
@@ -56,20 +50,6 @@ void MainWindow::initialize() {
     near_label->setText("Near Plane:");
     QLabel *far_label = new QLabel(); // Far plane label
     far_label->setText("Far Plane:");
-
-    // Create checkbox for per-pixel filter
-    filter1 = new QCheckBox();
-    filter1->setText(QStringLiteral("Per-Pixel Filter (Invert)"));
-    filter1->setChecked(false);
-
-    // Create checkbox for kernel-based filter
-    filter2 = new QCheckBox();
-    filter2->setText(QStringLiteral("Kernel-Based Filter (Blur)"));
-    filter2->setChecked(false);
-
-    // Create file uploader for scene file
-    uploadFile = new QPushButton();
-    uploadFile->setText(QStringLiteral("Upload Scene File"));
 
     // Creates the boxes containing the parameter sliders and number boxes
     QGroupBox *p1Layout = new QGroupBox(); // horizonal slider 1 alignment
@@ -151,48 +131,54 @@ void MainWindow::initialize() {
     lfar->addWidget(farBox);
     farLayout->setLayout(lfar);
 
-    // Extra Credit:
-    ec1 = new QCheckBox();
-    ec1->setText(QStringLiteral("Per-Pixel Filter (Grayscale)"));
-    ec1->setChecked(false);
+    // Create checkbox for filters
+    filter1 = new QCheckBox();
+    filter1->setText(QStringLiteral("Per-Pixel Filter (Invert)"));
+    filter1->setChecked(false);
 
-    ec2 = new QCheckBox();
-    ec2->setText(QStringLiteral("Per-Pixel Filter (Chromatic)"));
-    ec2->setChecked(false);
+    filter2 = new QCheckBox();
+    filter2->setText(QStringLiteral("Per-Pixel Filter (Chromatic)"));
+    filter2->setChecked(false);
 
-    ec3 = new QCheckBox();
-    ec3->setText(QStringLiteral("Kernel-Based Filter (Sharpen)"));
-    ec3->setChecked(false);
+    filter3 = new QCheckBox();
+    filter3->setText(QStringLiteral("Per-Pixel Filter (Grayscale)"));
+    filter3->setChecked(false);
 
-    ec4 = new QCheckBox();
-    ec4->setText(QStringLiteral("Kernel-Based Filter (Emboss)"));
-    ec4->setChecked(false);
+    filter4 = new QCheckBox();
+    filter4->setText(QStringLiteral("Kernel-Based Filter (Blur)"));
+    filter4->setChecked(false);
 
-    ec5 = new QCheckBox();
-    ec5->setText(QStringLiteral("Texture Mapping"));
-    ec5->setChecked(false);
+    filter5 = new QCheckBox();
+    filter5->setText(QStringLiteral("Kernel-Based Filter (Sharpen)"));
+    filter5->setChecked(false);
+
+    filter6 = new QCheckBox();
+    filter6->setText(QStringLiteral("Kernel-Based Filter (Emboss)"));
+    filter6->setChecked(false);
 
     // Final Project:
-    GPS = new QCheckBox();
-    GPS->setText(QStringLiteral("Enable"));
-    GPS->setChecked(false);
+    pause = new QPushButton();
+    pause->setText(QStringLiteral("Pause"));
+
+    showOrbits = new QCheckBox();
+    showOrbits->setText(QStringLiteral("Show Orbits"));
+    showOrbits->setChecked(true);
 
     orbitCamera = new QCheckBox();
     orbitCamera->setText(QStringLiteral("Use Orbit Camera"));
     orbitCamera->setChecked(false);
 
     vLayout->addWidget(GPS_label);
-    vLayout->addWidget(GPS);
+    vLayout->addWidget(pause);
     vLayout->addWidget(GPS_features_label);
-    vLayout->addWidget(orbitCamera);
-    vLayout->addWidget(realtime_label);
-    vLayout->addWidget(uploadFile);
+    vLayout->addWidget(showOrbits);
     vLayout->addWidget(tesselation_label);
     vLayout->addWidget(param1_label);
     vLayout->addWidget(p1Layout);
     vLayout->addWidget(param2_label);
     vLayout->addWidget(p2Layout);
     vLayout->addWidget(camera_label);
+    vLayout->addWidget(orbitCamera);
     vLayout->addWidget(near_label);
     vLayout->addWidget(nearLayout);
     vLayout->addWidget(far_label);
@@ -200,13 +186,10 @@ void MainWindow::initialize() {
     vLayout->addWidget(filters_label);
     vLayout->addWidget(filter1);
     vLayout->addWidget(filter2);
-    // Extra Credit:
-    vLayout->addWidget(ec_label);
-    vLayout->addWidget(ec1);
-    vLayout->addWidget(ec2);
-    vLayout->addWidget(ec3);
-    vLayout->addWidget(ec4);
-    vLayout->addWidget(ec5);
+    vLayout->addWidget(filter3);
+    vLayout->addWidget(filter4);
+    vLayout->addWidget(filter5);
+    vLayout->addWidget(filter6);
 
     connectUIElements();
 
@@ -217,6 +200,8 @@ void MainWindow::initialize() {
     // Set default values for near and far planes
     onValChangeNearBox(0.1f);
     onValChangeFarBox(100.f);
+
+    // Set default values for GPS
 }
 
 void MainWindow::finish() {
@@ -225,27 +210,21 @@ void MainWindow::finish() {
 }
 
 void MainWindow::connectUIElements() {
-    connectPerPixelFilter();
-    connectKernelBasedFilter();
-    connectUploadFile();
+    connectFilters();
     connectParam1();
     connectParam2();
     connectNear();
     connectFar();
-    connectExtraCredit();
     connectGPS();
 }
 
-void MainWindow::connectPerPixelFilter() {
-    connect(filter1, &QCheckBox::clicked, this, &MainWindow::onPerPixelFilter);
-}
-
-void MainWindow::connectKernelBasedFilter() {
-    connect(filter2, &QCheckBox::clicked, this, &MainWindow::onKernelBasedFilter);
-}
-
-void MainWindow::connectUploadFile() {
-    connect(uploadFile, &QPushButton::clicked, this, &MainWindow::onUploadFile);
+void MainWindow::connectFilters() {
+    connect(filter1, &QCheckBox::clicked, this, &MainWindow::onFilter1);
+    connect(filter2, &QCheckBox::clicked, this, &MainWindow::onFilter2);
+    connect(filter3, &QCheckBox::clicked, this, &MainWindow::onFilter3);
+    connect(filter4, &QCheckBox::clicked, this, &MainWindow::onFilter4);
+    connect(filter5, &QCheckBox::clicked, this, &MainWindow::onFilter5);
+    connect(filter6, &QCheckBox::clicked, this, &MainWindow::onFilter6);
 }
 
 void MainWindow::connectParam1() {
@@ -272,44 +251,11 @@ void MainWindow::connectFar() {
             this, &MainWindow::onValChangeFarBox);
 }
 
-void MainWindow::connectExtraCredit() {
-    connect(ec1, &QCheckBox::clicked, this, &MainWindow::onExtraCredit1);
-    connect(ec2, &QCheckBox::clicked, this, &MainWindow::onExtraCredit2);
-    connect(ec3, &QCheckBox::clicked, this, &MainWindow::onExtraCredit3);
-    connect(ec4, &QCheckBox::clicked, this, &MainWindow::onExtraCredit4);
-    connect(ec5, &QCheckBox::clicked, this, &MainWindow::onExtraCredit5);
-}
-
 void MainWindow::connectGPS() {
-    connect(GPS, &QCheckBox::clicked, this, &MainWindow::onGPS);
+    connect(pause, &QCheckBox::clicked, this, &MainWindow::onPause);
+    connect(showOrbits, &QCheckBox::clicked, this, &MainWindow::onShowOrbits);
     connect(orbitCamera, &QCheckBox::clicked, this, &MainWindow::onOrbitCamera);
 }
-
-void MainWindow::onPerPixelFilter() {
-    settings.perPixelFilter = !settings.perPixelFilter;
-    realtime->settingsChanged();
-}
-
-void MainWindow::onKernelBasedFilter() {
-    settings.kernelBasedFilter = !settings.kernelBasedFilter;
-    realtime->settingsChanged();
-}
-
-void MainWindow::onUploadFile() {
-    // Get abs path of scene file
-    QString configFilePath = QFileDialog::getOpenFileName(this, tr("Upload File"), QDir::homePath(), tr("Scene Files (*.xml *.obj)"));
-    if (configFilePath.isNull()) {
-        std::cout << "Failed to load null scenefile." << std::endl;
-        return;
-    }
-
-    settings.sceneFilePath = configFilePath.toStdString();
-
-    std::cout << "Loaded scenefile: \"" << configFilePath.toStdString() << "\"." << std::endl;
-
-    realtime->sceneChanged();
-}
-
 
 void MainWindow::onValChangeP1(int newValue) {
     p1Slider->setValue(newValue);
@@ -353,36 +299,37 @@ void MainWindow::onValChangeFarBox(double newValue) {
     realtime->settingsChanged();
 }
 
-// Extra Credit:
-
-void MainWindow::onExtraCredit1() {
-    settings.extraCredit1 = !settings.extraCredit1;
-    realtime->settingsChanged();
+// Filters
+void MainWindow::onFilter1() {
+    settings.filter1 = !settings.filter1;
 }
 
-void MainWindow::onExtraCredit2() {
-    settings.extraCredit2 = !settings.extraCredit2;
-    realtime->settingsChanged();
+void MainWindow::onFilter2() {
+    settings.filter2 = !settings.filter2;
 }
 
-void MainWindow::onExtraCredit3() {
-    settings.extraCredit3 = !settings.extraCredit3;
-    realtime->settingsChanged();
+void MainWindow::onFilter3() {
+    settings.filter3 = !settings.filter3;
 }
 
-void MainWindow::onExtraCredit4() {
-    settings.extraCredit4 = !settings.extraCredit4;
-    realtime->settingsChanged();
+void MainWindow::onFilter4() {
+    settings.filter4 = !settings.filter4;
 }
 
-void MainWindow::onExtraCredit5() {
-    settings.extraCredit5 = !settings.extraCredit5;
-    realtime->settingsChanged();
+void MainWindow::onFilter5() {
+    settings.filter5 = !settings.filter5;
 }
 
-void MainWindow::onGPS() {
-    settings.GPS = !settings.GPS;
-    realtime->sceneChanged();
+void MainWindow::onFilter6() {
+    settings.filter6 = !settings.filter6;
+}
+
+void MainWindow::onPause() {
+    settings.pause = !settings.pause;
+}
+
+void MainWindow::onShowOrbits() {
+    settings.showOrbits = !settings.showOrbits;
 }
 
 void MainWindow::onOrbitCamera() {

@@ -26,7 +26,6 @@ struct Material {
 };
 
 uniform Material material;
-uniform bool enableTexture;
 uniform sampler2D tex;
 
 struct Light {
@@ -92,12 +91,6 @@ void main() {
 
             // Add the diffuse term
             frag_color += vec4(vec3(fI * kdOd * n_dot_L), 0);
-
-            // Add the specular term
-            vec3 Ri = -reflect(Li, norm);
-            float R_dot_V = dot(Ri, V);
-            R_dot_V = R_dot_V > 0 ? max(min(pow(R_dot_V, material.shininess), 1), 0) : 0;
-            // frag_color += vec4(vec3(fI * ksOs * R_dot_V), 0);
         }
     }
 }

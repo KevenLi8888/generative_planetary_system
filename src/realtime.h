@@ -19,13 +19,6 @@ public:
         int shapeParameter2;
         float nearPlane;
         float farPlane;
-        bool extraCredit1;
-        bool extraCredit2;
-        bool extraCredit3;
-        bool extraCredit4;
-        bool extraCredit5;
-
-        // Final project
         bool orbitCamera;
     };
 public:
@@ -78,6 +71,9 @@ private:
     GLuint m_sharpen_shader;
     GLuint m_boxblur_shader;
     GLuint m_emboss_shader;
+
+    // Final Project
+    GLuint m_planet_shader;
 
     void configurePixelShaders();
     void configureKernelShaders(int w, int h);

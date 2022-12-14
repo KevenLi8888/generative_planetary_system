@@ -22,16 +22,10 @@ private:
     void connectParam2();
     void connectNear();
     void connectFar();
-    void connectPerPixelFilter();
-    void connectKernelBasedFilter();
-    void connectUploadFile();
-    void connectExtraCredit();
+    void connectFilters();
     void connectGPS();
 
     Realtime *realtime;
-    QCheckBox *filter1;
-    QCheckBox *filter2;
-    QPushButton *uploadFile;
     QSlider *p1Slider;
     QSlider *p2Slider;
     QSpinBox *p1Box;
@@ -41,21 +35,19 @@ private:
     QDoubleSpinBox *nearBox;
     QDoubleSpinBox *farBox;
 
-    // Extra Credit:
-    QCheckBox *ec1;
-    QCheckBox *ec2;
-    QCheckBox *ec3;
-    QCheckBox *ec4;
-    QCheckBox *ec5;
+    QCheckBox *filter1;
+    QCheckBox *filter2;
+    QCheckBox *filter3;
+    QCheckBox *filter4;
+    QCheckBox *filter5;
+    QCheckBox *filter6;
 
     // Final Project
-    QCheckBox *GPS;
+    QPushButton *pause;
     QCheckBox *orbitCamera;
+    QCheckBox *showOrbits;
 
 private slots:
-    void onPerPixelFilter();
-    void onKernelBasedFilter();
-    void onUploadFile();
     void onValChangeP1(int newValue);
     void onValChangeP2(int newValue);
     void onValChangeNearSlider(int newValue);
@@ -63,14 +55,16 @@ private slots:
     void onValChangeNearBox(double newValue);
     void onValChangeFarBox(double newValue);
 
-    // Extra Credit:
-    void onExtraCredit1();
-    void onExtraCredit2();
-    void onExtraCredit3();
-    void onExtraCredit4();
-    void onExtraCredit5();
+    // Filters
+    void onFilter1();
+    void onFilter2();
+    void onFilter3();
+    void onFilter4();
+    void onFilter5();
+    void onFilter6();
 
     // Final Project
-    void onGPS();
+    void onPause();
     void onOrbitCamera();
+    void onShowOrbits();
 };

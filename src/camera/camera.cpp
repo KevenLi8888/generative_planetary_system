@@ -23,7 +23,7 @@ void Camera::resize(int width, int height) {
 
 // Update the camera according to keyboard input
 void Camera::moveCamera(std::unordered_map<Qt::Key, bool> &key_map, float dist) {    
-    if (settings.GPS && settings.orbitCamera) {
+    if (settings.orbitCamera) {
         auto prev_dist = m_distance;
 
         if (key_map[Qt::Key_W]) m_distance -= dist;
@@ -64,7 +64,7 @@ inline glm::vec3 rotate(glm::vec3 v, glm::vec3 u, float theta) {
 
 // Update the camera according to mouse input
 void Camera::rotateCamera(float dx, float dy) {
-    if (settings.GPS && settings.orbitCamera) {
+    if (settings.orbitCamera) {
         m_theta = std::fmod(m_theta - dx, 2 * glm::pi<float>());
         m_phi = std::min(std::max(m_phi + dy, 0.001f), glm::pi<float>() - 0.001f);
 
